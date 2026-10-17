@@ -5,23 +5,22 @@ Branch: `feat/supabase-backend-foundation`.
 ## Added in this branch
 - Spring Boot 3.4 / Java 21 API foundation.
 - Public health endpoint and JWT-protected `GET /api/v1/me`.
-- Spring Security OAuth2 resource-server setup for validating Supabase Auth access tokens.
+- Supabase JWT resource-server validation foundation.
+- Database-backed role checks for initial task endpoints.
+- `GET /api/v1/tasks` for ADMIN/MANAGER/OPERATIONS and `POST /api/v1/tasks` for ADMIN/CUSTOMER.
 - Server-side PostgreSQL configuration with SSL example and secrets kept out of Git.
 - Draft Flyway schema for profiles, role assignments, tasks, evidence, approvals, wallet ledger and audit events.
-- Initial RLS-enable migration that defaults to deny until reviewed policies are added.
-- Dockerfile and backend CI workflow.
-- Expo/React Native app scaffold.
-- Supabase/Vite integration notes and API contract documentation.
+- RLS-enable migration with deny-by-default until reviewed policies are added.
+- Dockerfile, backend CI workflow, Expo/React Native scaffold, mobile API helper, API contract and security checklist.
 
 ## Not yet complete or verified
 - The application has not connected to the live Supabase database.
 - The schema is a draft; inspect existing tables and take a backup before applying it.
-- JWT identity validation is implemented as a foundation, but application-role lookup and per-resource authorization are not complete.
+- Authenticated users must be provisioned in `app_profiles` and assigned roles through a trusted process before task endpoints work.
 - RLS/Storage policies need reviewed, tested policies before production use.
-- Task, employee, checklist, evidence, operations approval and wallet API endpoints are not yet implemented.
+- Employee, checklist, assignment, evidence, operations approval and wallet API endpoints are not yet implemented.
 - The existing admin dashboard still uses mock data; it is not connected to the real API.
 - The mobile app is a scaffold screen, not a completed field workflow.
-- Frontend/mobile authentication, end-to-end tests, deployment and production hardening remain.
-- Build/tests have not been run in this connector-only environment.
+- Frontend/mobile sign-in and session handling, end-to-end tests, deployment and production hardening remain.
 
-This branch is an incremental foundation, not a completed or production-ready application.
+CI has passed for an earlier backend foundation commit; the newest task endpoint changes still need their workflow result. Do not call this application complete or production-ready yet.
