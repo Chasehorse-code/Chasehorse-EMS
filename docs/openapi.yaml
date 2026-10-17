@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  title: ChaseHorse ERP API
+  version: 0.1.0
+  description: Initial foundation contract. Business workflow endpoints are not implemented.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/health:
+    get:
+      operationId: getHealth
+      summary: Check API availability
+      responses:
+        "200":
+          description: API is available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time

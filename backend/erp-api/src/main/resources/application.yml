@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: chasehorse-erp-api
+
+server:
+  port: ${PORT:8080}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+

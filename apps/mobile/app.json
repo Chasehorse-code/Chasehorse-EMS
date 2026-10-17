@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "ChaseHorse",
+    "slug": "chasehorse",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic"
+  }
+}
+
