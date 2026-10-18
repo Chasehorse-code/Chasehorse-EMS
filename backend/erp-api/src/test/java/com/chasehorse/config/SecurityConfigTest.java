@@ -1,6 +1,7 @@
 package com.chasehorse.config;
 
 import com.chasehorse.auth.CurrentUserController;
+import com.chasehorse.profiles.ProfileService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -18,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SecurityConfigTest {
     @Autowired MockMvc mvc;
     @MockBean JwtDecoder jwtDecoder;
+    @MockBean ProfileService profileService;
 
     @Test void protectedEndpointRejectsAnonymousRequest() throws Exception {
         mvc.perform(get("/api/v1/me")).andExpect(status().isUnauthorized());

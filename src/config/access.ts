@@ -6,29 +6,31 @@ import {
   ListChecks,
   MapPin,
   ShieldCheck,
+  Truck,
   Users,
   Wallet,
 } from 'lucide-react';
 import type { Role } from '@/types';
 
-/**
- * ROLE-BASED NAVIGATION — PROTOTYPE ONLY.
- *
- * These rules only control what the demo UI shows. They are NOT a security
- * boundary: there is no authentication in this prototype and the role is
- * chosen from a dropdown. In production, authorization must be enforced by the
- * Spring Boot API (and Supabase row-level security); the frontend would merely
- * mirror the roles/permissions returned by the server.
- */
-
 export const roleMeta: Record<Role, { label: string; blurb: string }> = {
-  admin: { label: 'Admin', blurb: 'Full access to every area' },
+  admin: { label: 'Admin', blurb: 'Full access to all modules, users and configurations' },
   manager: { label: 'Manager', blurb: 'Teams, tasks, checklists and evidence review' },
-  operations: { label: 'Operations', blurb: 'Dispatch, nearby monitoring and reward approvals' },
-  customer: { label: 'Customer', blurb: 'Read-only view of your own requests' },
+  operations: { label: 'Operations', blurb: 'Dispatch, fleet logistics, nearby monitoring and reward approvals' },
+  employee: { label: 'Employee', blurb: 'Internal staff execution, task status and attendance' },
+  customer: { label: 'Customer', blurb: 'Create task requests and monitor real-time fulfillment' },
+  partner: { label: 'Partner', blurb: 'Third-party transport and logistics coordination' },
+  field_worker: { label: 'Field Worker', blurb: 'Mobile task execution, photos, checklists and rewards' },
 };
 
-export const ROLES: Role[] = ['admin', 'manager', 'operations', 'customer'];
+export const ROLES: Role[] = [
+  'admin',
+  'manager',
+  'operations',
+  'employee',
+  'customer',
+  'partner',
+  'field_worker',
+];
 
 export type Capability =
   | 'createTasks'
@@ -37,13 +39,49 @@ export type Capability =
   | 'editChecklists'
   | 'decideEvidence'
   | 'decideApprovals'
-  | 'viewAiResults';
+  | 'viewAiResults'
+  | 'manageTms'
+  | 'manageWallets';
 
 export const roleCapabilities: Record<Role, Capability[]> = {
-  admin: ['createTasks', 'assignTasks', 'manageEmployees', 'editChecklists', 'decideEvidence', 'decideApprovals', 'viewAiResults'],
-  manager: ['createTasks', 'assignTasks', 'manageEmployees', 'editChecklists', 'decideEvidence', 'viewAiResults'],
-  operations: ['createTasks', 'assignTasks', 'decideApprovals', 'viewAiResults'],
-  customer: [],
+  admin: [
+    'createTasks',
+    'assignTasks',
+    'manageEmployees',
+    'editChecklists',
+    'decideEvidence',
+    'decideApprovals',
+    'viewAiResults',
+    'manageTms',
+    'manageWallets',
+  ],
+  manager: [
+    'createTasks',
+    'assignTasks',
+    'manageEmployees',
+    'editChecklists',
+    'decideEvidence',
+    'viewAiResults',
+    'manageTms',
+  ],
+  operations: [
+    'createTasks',
+    'assignTasks',
+    'decideApprovals',
+    'viewAiResults',
+    'manageTms',
+    'manageWallets',
+  ],
+  employee: [
+    'viewAiResults',
+  ],
+  customer: [
+    'createTasks',
+  ],
+  partner: [
+    'manageTms',
+  ],
+  field_worker: [],
 };
 
 export interface NavItem {
@@ -55,14 +93,15 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { to: '/', label: 'Overview', icon: LayoutDashboard, roles: ['admin', 'manager', 'operations', 'customer'], end: true },
+  { to: '/', label: 'Overview', icon: LayoutDashboard, roles: ['admin', 'manager', 'operations', 'customer', 'partner'], end: true },
   { to: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'manager'] },
-  { to: '/tasks', label: 'Tasks', icon: ClipboardList, roles: ['admin', 'manager', 'operations', 'customer'] },
-  { to: '/nearby', label: 'Nearby tasks', icon: MapPin, roles: ['admin', 'manager', 'operations'] },
+  { to: '/tasks', label: 'Tasks', icon: ClipboardList, roles: ['admin', 'manager', 'operations', 'customer', 'employee', 'field_worker'] },
+  { to: '/nearby', label: 'Nearby tasks', icon: MapPin, roles: ['admin', 'manager', 'operations', 'employee', 'field_worker'] },
   { to: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['admin', 'manager'] },
-  { to: '/evidence', label: 'Photo evidence', icon: Camera, roles: ['admin', 'manager', 'operations', 'customer'] },
-  { to: '/approvals', label: 'Approval queue', icon: ShieldCheck, roles: ['admin', 'operations'] },
-  { to: '/wallet', label: 'Wallets', icon: Wallet, roles: ['admin', 'operations'] },
+  { to: '/evidence', label: 'Photo evidence', icon: Camera, roles: ['admin', 'manager', 'operations', 'customer', 'field_worker'] },
+  { to: '/approvals', label: 'Approval queue', icon: ShieldCheck, roles: ['admin', 'operations', 'manager'] },
+  { to: '/wallet', label: 'Wallets', icon: Wallet, roles: ['admin', 'operations', 'employee', 'field_worker'] },
+  { to: '/tms', label: 'Transport (TMS)', icon: Truck, roles: ['admin', 'operations', 'manager', 'partner'] },
 ];
 
 export function canAccessPath(role: Role, pathname: string): boolean {

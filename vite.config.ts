@@ -12,7 +12,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // When the Spring Boot API exists, proxy /api to it during development:
-    // proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
   },
 });

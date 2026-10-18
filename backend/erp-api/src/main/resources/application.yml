@@ -5,24 +5,29 @@ spring:
   application:
     name: chasehorse-erp-api
   datasource:
-    url: ${SPRING_DATASOURCE_URL:}
-    username: ${SPRING_DATASOURCE_USERNAME:}
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:chasehorse;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:5}
       connection-timeout: 30000
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: ${HIBERNATE_DDL_AUTO:none}
     open-in-view: false
+  sql:
+    init:
+      mode: embedded
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
+    baseline-on-migrate: true
+    baseline-version: "0"
     locations: classpath:db/migration
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SUPABASE_JWT_ISSUER}
+          issuer-uri: ${SUPABASE_JWT_ISSUER:https://phxybimufcrsnxfepiuz.supabase.co/auth/v1}
 management:
   endpoints:
     web:

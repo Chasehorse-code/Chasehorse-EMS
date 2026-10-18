@@ -5,8 +5,18 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "splash": { "resizeMode": "contain", "backgroundColor": "#ffffff" },
-    "android": { "package": "com.chasehorse.mobile" },
-    "ios": { "bundleIdentifier": "com.chasehorse.mobile" }
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "android": {
+      "package": "com.chasehorse.mobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.chasehorse.mobile"
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }

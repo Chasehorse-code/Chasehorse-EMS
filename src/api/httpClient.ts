@@ -1,9 +1,5 @@
-/**
- * Thin fetch wrapper for the FUTURE Spring Boot REST API. Not used by the
- * prototype — it exists so a `restApi` implementation of `ChaseHorseApi` has a
- * place to start. Authentication (e.g. a Supabase-issued JWT validated by
- * Spring Security) must be added here when the backend exists.
- */
+import { supabase } from '@/config/supabase';
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -29,9 +25,23 @@ export async function http<T>(
       ).toString()
     : '';
 
+  let authHeader: Record<string, string> = {};
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      authHeader = { Authorization: `Bearer ${session.access_token}` };
+    }
+  } catch {
+    /* session unavailable */
+  }
+
   const res = await fetch(`${BASE_URL}${path}${qs}`, {
     ...rest,
-    headers: { 'Content-Type': 'application/json', ...headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeader,
+      ...headers,
+    },
   });
 
   if (!res.ok) {

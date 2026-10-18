@@ -4,7 +4,14 @@
  * IDs are strings so they can be UUIDs in the real backend.
  */
 
-export type Role = 'admin' | 'manager' | 'operations' | 'customer';
+export type Role =
+  | 'admin'
+  | 'manager'
+  | 'operations'
+  | 'employee'
+  | 'customer'
+  | 'partner'
+  | 'field_worker';
 
 export interface GeoPoint {
   lat: number;
