@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Camera,
   ClipboardList,
+  Compass,
   LayoutDashboard,
   ListChecks,
   MapPin,
@@ -93,19 +94,21 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { to: '/', label: 'Overview', icon: LayoutDashboard, roles: ['admin', 'manager', 'operations', 'customer', 'partner'], end: true },
-  { to: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'manager'] },
+  { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'operations', 'customer', 'partner'] },
+  { to: '/truck-plans', label: 'Truck Plans', icon: Truck, roles: ['admin', 'manager', 'operations', 'customer', 'partner'] },
+  { to: '/bookings', label: 'Bookings', icon: ClipboardList, roles: ['admin', 'manager', 'operations', 'customer', 'partner'] },
+  { to: '/tracking', label: 'Shipment Tracking', icon: Compass, roles: ['admin', 'manager', 'operations', 'customer', 'partner', 'employee', 'field_worker'] },
   { to: '/tasks', label: 'Tasks', icon: ClipboardList, roles: ['admin', 'manager', 'operations', 'customer', 'employee', 'field_worker'] },
-  { to: '/nearby', label: 'Nearby tasks', icon: MapPin, roles: ['admin', 'manager', 'operations', 'employee', 'field_worker'] },
+  { to: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'manager'] },
   { to: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['admin', 'manager'] },
   { to: '/evidence', label: 'Photo evidence', icon: Camera, roles: ['admin', 'manager', 'operations', 'customer', 'field_worker'] },
   { to: '/approvals', label: 'Approval queue', icon: ShieldCheck, roles: ['admin', 'operations', 'manager'] },
   { to: '/wallet', label: 'Wallets', icon: Wallet, roles: ['admin', 'operations', 'employee', 'field_worker'] },
-  { to: '/tms', label: 'Transport (TMS)', icon: Truck, roles: ['admin', 'operations', 'manager', 'partner'] },
+  { to: '/nearby', label: 'Nearby tasks', icon: MapPin, roles: ['admin', 'manager', 'operations', 'employee', 'field_worker'] },
 ];
 
 export function canAccessPath(role: Role, pathname: string): boolean {
-  if (pathname === '/tasks/new') return roleCapabilities[role].includes('createTasks');
+  if (pathname === '/tasks/new' || pathname === '/bookings/new') return true;
   const match = navItems
     .filter((n) => (n.end ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + '/')))
     .sort((a, b) => b.to.length - a.to.length)[0];

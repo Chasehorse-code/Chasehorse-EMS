@@ -231,3 +231,76 @@ export interface DashboardStats {
   byStatus: Record<TaskStatus, number>;
   completionTrend: { day: string; completed: number; created: number }[];
 }
+
+/* ---------- Transport Management System (TMS) ---------- */
+
+export type TmsVehicleStatus = 'AVAILABLE' | 'ON_TRIP' | 'MAINTENANCE' | 'INACTIVE';
+export type TmsShipmentStatus = 'CONFIRMED' | 'ASSIGNED' | 'DISPATCHED' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+
+export interface TmsVehicle {
+  id: string;
+  registrationNumber: string;
+  vehicleType: string;
+  capacityKg: number;
+  make: string;
+  model: string;
+  status: TmsVehicleStatus;
+  assignedDriverId?: string;
+}
+
+export interface TmsTransportPlan {
+  id: string;
+  planName: string;
+  vehicleType: string;
+  maxCapacityKg: number;
+  baseRateInr: number;
+  ratePerKmInr: number;
+  estimatedHours: number;
+  description: string;
+}
+
+export interface TmsShipment {
+  id: string;
+  bookingRef: string;
+  customerId: string;
+  originAddress: string;
+  destinationAddress: string;
+  cargoDescription: string;
+  cargoWeightKg: number;
+  status: TmsShipmentStatus;
+  totalPrice: number;
+  currency?: string;
+  createdAt: string;
+}
+
+export interface CreateShipmentInput {
+  originAddress: string;
+  destinationAddress: string;
+  cargoDescription?: string;
+  cargoWeightKg?: number;
+  totalPrice?: number;
+  transportPlanId?: string;
+}
+
+export interface TmsTrackingEvent {
+  id: string;
+  bookingId: string;
+  eventType: string;
+  locationText: string;
+  notes?: string;
+  recordedAt: string;
+}
+
+export interface TmsTrackingDetails {
+  id: string;
+  bookingRef: string;
+  status: TmsShipmentStatus;
+  originAddress: string;
+  destinationAddress: string;
+  cargoDescription?: string;
+  cargoWeightKg?: number;
+  totalPrice?: number;
+  createdAt: string;
+  events: TmsTrackingEvent[];
+}
+

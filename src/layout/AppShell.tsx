@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
-import { FlaskConical, Menu, ShieldAlert, X, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { Menu, ShieldAlert, X, LogIn, LogOut, ShieldCheck, Home } from 'lucide-react';
 import { ROLES, canAccessPath, navItems, roleMeta } from '@/config/access';
 import { useRole } from '@/context/RoleContext';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '@/components/ui/Avatar';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import type { Role } from '@/types';
 import { AccessDenied } from '@/pages/AccessDenied';
 
@@ -43,11 +44,13 @@ export function AppShell() {
 
       <aside id="primary-nav" className={`sidebar ${navOpen ? 'sidebar--open' : ''}`} aria-label="Primary">
         <div className="sidebar__brand">
-          <span className="logo" aria-hidden>CH</span>
-          <div>
-            <p className="sidebar__name">ChaseHorse</p>
-            <p className="sidebar__sub">Field operations & TMS</p>
-          </div>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', textDecoration: 'none', color: 'inherit' }}>
+            <span className="logo" aria-hidden>CH</span>
+            <div>
+              <p className="sidebar__name">ChaseHorse</p>
+              <p className="sidebar__sub">Operations & Logistics</p>
+            </div>
+          </Link>
           <button type="button" className="icon-btn sidebar__close" onClick={() => setNavOpen(false)} aria-label="Close navigation">
             <X size={18} aria-hidden />
           </button>
@@ -67,9 +70,14 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar__foot">
-          <p className="sidebar__foot-label">
-            {user ? 'Authenticated User' : 'Active Persona'}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <p className="sidebar__foot-label" style={{ margin: 0 }}>
+              {user ? 'Verified Session' : 'Active Role View'}
+            </p>
+            <Link to="/" className="icon-btn" title="Back to Public Site" aria-label="Public website">
+              <Home size={15} />
+            </Link>
+          </div>
           <div className="sidebar__who">
             <Avatar name={user ? (profile?.displayName || user.email || 'User') : actorName} size={32} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -77,7 +85,7 @@ export function AppShell() {
                 {user ? (profile?.displayName || user.email?.split('@')[0]) : roleMeta[role].label}
               </p>
               <p className="sidebar__who-sub">
-                {user ? (profile?.roles?.[0] || 'Member') : 'Demo preview'}
+                {user ? (profile?.roles?.[0] || 'Enterprise') : 'Console Preview'}
               </p>
             </div>
             {user ? (
@@ -106,17 +114,10 @@ export function AppShell() {
           <div className="demo-banner" style={{ background: 'rgba(34, 197, 94, 0.12)', color: '#4ade80', borderColor: 'rgba(34, 197, 94, 0.25)' }} role="note">
             <ShieldCheck size={16} aria-hidden />
             <p>
-              <strong>Connected via Supabase Auth:</strong> Signed in as <code>{user.email}</code>. Backend operations authenticate with JWT verification.
+              <strong>Connected via Supabase Auth:</strong> Signed in as <code>{user.email}</code>. Live API operations verified with JWT tokens.
             </p>
           </div>
-        ) : (
-          <div className="demo-banner" role="note">
-            <FlaskConical size={16} aria-hidden />
-            <p>
-              <strong>Evaluation Mode:</strong> You can sign in with your enterprise credentials or preview workflows using the persona switcher.
-            </p>
-          </div>
-        )}
+        ) : null}
 
         <header className="topbar">
           <button
@@ -129,10 +130,16 @@ export function AppShell() {
           >
             <Menu size={20} aria-hidden />
           </button>
+
           <div className="topbar__spacer" />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* Role switcher for evaluation & multi-role testing */}
           <div className="role-switch">
             <label htmlFor="demo-role" className="role-switch__label">
-              Role Switcher:
+              Role:
             </label>
             <select id="demo-role" className="input input--compact" value={role} onChange={(e) => setRole(e.target.value as Role)}>
               {ROLES.map((r) => (
@@ -140,40 +147,21 @@ export function AppShell() {
               ))}
             </select>
           </div>
+
           {user ? (
             <button
               type="button"
               onClick={() => signOut()}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.8rem',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                background: 'var(--color-surface-sunken, #0f172a)',
-                border: '1px solid var(--color-border, #334155)',
-                color: 'var(--color-text-muted, #94a3b8)',
-                cursor: 'pointer',
-              }}
+              className="btn btn--ghost btn--sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
               <LogOut size={14} /> Sign Out
             </button>
           ) : (
             <Link
               to="/login"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.8rem',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                color: '#ffffff',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
+              className="btn btn--primary btn--sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
               <LogIn size={14} /> Sign In
             </Link>
@@ -192,7 +180,7 @@ export function AppShell() {
 
         <footer className="footer">
           <ShieldAlert size={14} aria-hidden />
-          <span>Role authorizations are verified through Spring Security and Supabase PostgreSQL Row Level Security.</span>
+          <span>Role authorizations enforced via Spring Security & Supabase PostgreSQL Row Level Security.</span>
         </footer>
       </div>
     </div>

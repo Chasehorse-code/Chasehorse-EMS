@@ -5,8 +5,8 @@ import { useAsync } from '@/hooks/useAsync';
 import { useDirectory } from '@/hooks/useDirectory';
 import { useRole } from '@/context/RoleContext';
 import { PageHeader, Card, CardHeader, StatCard } from '@/components/ui/Card';
-import { Async } from '@/components/ui/States';
-import { Badge, DemoTag } from '@/components/ui/Badge';
+import { Async, EmptyState } from '@/components/ui/States';
+import { Badge } from '@/components/ui/Badge';
 import { BarList, TrendChart } from '@/components/charts/Charts';
 import { formatDate } from '@/utils/format';
 import { priorityLabel, taskStatusLabel, taskStatusOrder } from '@/utils/labels';
@@ -24,13 +24,19 @@ export function OverviewPage() {
   return (
     <>
       <PageHeader
-        title="Overview"
+        title="Operations Overview"
         description={
           isCustomer
-            ? 'A read-only summary of your task requests.'
-            : 'Live-style snapshot of field work across your team.'
+            ? 'Real-time status of your service requests and shipments.'
+            : 'Operational dashboard for field tasks, workforce, and transport execution.'
         }
-        actions={<DemoTag />}
+        actions={
+          can('createTasks') ? (
+            <Link to="/tasks/new" className="btn btn--primary btn--md">
+              Create task
+            </Link>
+          ) : undefined
+        }
       />
 
       <Async state={stats} skeletonLines={3}>
@@ -108,38 +114,52 @@ export function OverviewPage() {
       <Card aria-labelledby="recent">
         <CardHeader id="recent" title="Recent tasks" actions={<Link to="/tasks" className="link-btn">View all</Link>} />
         <Async state={tasks} skeletonLines={4}>
-          {(list) => (
-            <div className="table-wrap" role="region" aria-label="Recent tasks" tabIndex={0}>
-              <table className="table table--stack">
-                <thead>
-                  <tr>
-                    <th scope="col">Task</th>
-                    {!isCustomer && <th scope="col">Customer</th>}
-                    <th scope="col">Priority</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Due</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...list]
-                    .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
-                    .slice(0, 6)
-                    .map((t) => (
-                      <tr key={t.id}>
-                        <td data-label="Task">
-                          <span className="cell-title">{t.title}</span>
-                          <span className="cell-sub">{t.id} · {t.location.area}</span>
-                        </td>
-                        {!isCustomer && <td data-label="Customer">{dir.customerName(t.customerId)}</td>}
-                        <td data-label="Priority"><Badge tone={priorityLabel[t.priority].tone}>{priorityLabel[t.priority].label}</Badge></td>
-                        <td data-label="Status"><Badge tone={taskStatusLabel[t.status].tone}>{taskStatusLabel[t.status].label}</Badge></td>
-                        <td data-label="Due">{formatDate(t.dueAt)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {(list) =>
+            list.length === 0 ? (
+              <EmptyState
+                title="No tasks created yet"
+                description="Create your first operations task or wait for incoming client requests."
+                action={
+                  can('createTasks') ? (
+                    <Link to="/tasks/new" className="btn btn--primary btn--sm" style={{ marginTop: '0.75rem' }}>
+                      Create first task
+                    </Link>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <div className="table-wrap" role="region" aria-label="Recent tasks" tabIndex={0}>
+                <table className="table table--stack">
+                  <thead>
+                    <tr>
+                      <th scope="col">Task</th>
+                      {!isCustomer && <th scope="col">Customer</th>}
+                      <th scope="col">Priority</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Due</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...list]
+                      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+                      .slice(0, 6)
+                      .map((t) => (
+                        <tr key={t.id}>
+                          <td data-label="Task">
+                            <span className="cell-title">{t.title}</span>
+                            <span className="cell-sub">{t.id} · {t.location.area}</span>
+                          </td>
+                          {!isCustomer && <td data-label="Customer">{dir.customerName(t.customerId)}</td>}
+                          <td data-label="Priority"><Badge tone={priorityLabel[t.priority].tone}>{priorityLabel[t.priority].label}</Badge></td>
+                          <td data-label="Status"><Badge tone={taskStatusLabel[t.status].tone}>{taskStatusLabel[t.status].label}</Badge></td>
+                          <td data-label="Due">{formatDate(t.dueAt)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          }
         </Async>
       </Card>
     </>

@@ -1,21 +1,33 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, CSSProperties } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
-export function Card({ children, className = '', as: Tag = 'section', ...rest }: {
+export function Card({
+  children,
+  className = '',
+  as: Tag = 'section',
+  style,
+  ...rest
+}: {
   children: ReactNode;
   className?: string;
   as?: 'section' | 'div' | 'article';
+  style?: CSSProperties;
   'aria-labelledby'?: string;
   'aria-label'?: string;
 }) {
   return (
-    <Tag className={`card ${className}`.trim()} {...rest}>
+    <Tag className={`card ${className}`.trim()} style={style} {...rest}>
       {children}
     </Tag>
   );
 }
 
-export function CardHeader({ title, subtitle, actions, id }: {
+export function CardHeader({
+  title,
+  subtitle,
+  actions,
+  id,
+}: {
   title: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
@@ -32,7 +44,11 @@ export function CardHeader({ title, subtitle, actions, id }: {
   );
 }
 
-export function PageHeader({ title, description, actions }: {
+export function PageHeader({
+  title,
+  description,
+  actions,
+}: {
   title: string;
   description?: ReactNode;
   actions?: ReactNode;
@@ -48,23 +64,27 @@ export function PageHeader({ title, description, actions }: {
   );
 }
 
-export function StatCard({ label, value, hint, icon: Icon, tone = 'brand' }: {
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = 'neutral',
+}: {
   label: string;
   value: ReactNode;
-  hint?: string;
-  icon: LucideIcon;
-  tone?: 'brand' | 'warning' | 'success' | 'ai' | 'danger';
+  hint?: ReactNode;
+  icon?: LucideIcon;
+  tone?: 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'ai';
 }) {
   return (
-    <div className="stat-card">
-      <span className={`stat-card__icon stat-card__icon--${tone}`} aria-hidden>
-        <Icon size={20} />
-      </span>
-      <div>
-        <p className="stat-card__label">{label}</p>
-        <p className="stat-card__value">{value}</p>
-        {hint && <p className="stat-card__hint">{hint}</p>}
+    <div className={`stat-card stat-card--${tone}`}>
+      <div className="stat-card__head">
+        <span className="stat-card__label">{label}</span>
+        {Icon && <Icon size={18} className="stat-card__icon" aria-hidden />}
       </div>
+      <p className="stat-card__value">{value}</p>
+      {hint && <p className="stat-card__hint">{hint}</p>}
     </div>
   );
 }

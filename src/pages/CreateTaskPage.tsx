@@ -5,10 +5,9 @@ import { api } from '@/api';
 import { useAsync } from '@/hooks/useAsync';
 import { useDirectory } from '@/hooks/useDirectory';
 import { useToast } from '@/context/ToastContext';
-import { AREAS, DEMO_NOW } from '@/data/mockData';
+import { OPERATIONAL_HUBS } from '@/config/locations';
 import { PageHeader, Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { DemoTag } from '@/components/ui/Badge';
 import { Notice } from '@/components/ui/States';
 import { SelectField, TextAreaField, TextField } from '@/components/ui/Fields';
 import { toDateTimeLocal } from '@/utils/format';
@@ -31,9 +30,9 @@ export function CreateTaskPage() {
   const [category, setCategory] = useState<TaskCategory>('Shelf audit');
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [customerId, setCustomerId] = useState('');
-  const [areaKey, setAreaKey] = useState('benz');
+  const [areaKey, setAreaKey] = useState('central');
   const [address, setAddress] = useState('');
-  const [dueAt, setDueAt] = useState(toDateTimeLocal(new Date(DEMO_NOW + 2 * 86_400_000).toISOString()));
+  const [dueAt, setDueAt] = useState(toDateTimeLocal(new Date(Date.now() + 2 * 86_400_000).toISOString()));
   const [rewardInr, setRewardInr] = useState('450');
   const [assigneeId, setAssigneeId] = useState('');
   const [templateOverride, setTemplateOverride] = useState('');
@@ -45,12 +44,13 @@ export function CreateTaskPage() {
   const template = templates.find((t) => t.id === templateId);
 
   const approved = useMemo(() => {
-    const target = AREAS[areaKey];
+    const target = OPERATIONAL_HUBS[areaKey] || OPERATIONAL_HUBS.central;
     return dir.employees
       .filter((e) => e.approvalStatus === 'approved')
       .map((e) => ({ e, km: haversineKm(e.location, target) }))
       .sort((a, b) => a.km - b.km);
   }, [dir.employees, areaKey]);
+
 
   function validate(): Errors {
     const next: Errors = {};
@@ -96,13 +96,10 @@ export function CreateTaskPage() {
         title="Create task"
         description="Define a field task, pick a checklist and optionally assign it right away."
         actions={
-          <>
-            <DemoTag />
-            <Link to="/tasks" className="btn btn--ghost btn--md">
-              <span className="btn__icon" aria-hidden><ArrowLeft size={16} /></span>
-              Back to tasks
-            </Link>
-          </>
+          <Link to="/tasks" className="btn btn--ghost btn--md">
+            <span className="btn__icon" aria-hidden><ArrowLeft size={16} /></span>
+            Back to tasks
+          </Link>
         }
       />
 
@@ -129,7 +126,7 @@ export function CreateTaskPage() {
 
             <div className="form__row">
               <SelectField label="Area" value={areaKey} onChange={(e) => setAreaKey(e.target.value)}>
-                {Object.entries(AREAS).map(([k, a]) => <option key={k} value={k}>{a.area}</option>)}
+                {Object.entries(OPERATIONAL_HUBS).map(([k, a]) => <option key={k} value={k}>{a.name}</option>)}
               </SelectField>
               <TextField label="Street / landmark" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Optional" />
             </div>

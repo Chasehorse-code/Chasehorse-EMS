@@ -23,7 +23,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/health", "/actuator/health", "/actuator/health/**", "/error").permitAll()
+                .requestMatchers(
+                    "/api/v1/health",
+                    "/actuator/health",
+                    "/actuator/health/**",
+                    "/error",
+                    "/api/v1/tms/tracking/**",
+                    "/api/v1/tms/plans"
+                ).permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
             .build();

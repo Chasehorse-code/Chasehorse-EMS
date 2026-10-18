@@ -12,30 +12,15 @@ import type {
   Task,
   WalletAccount,
   WalletTransaction,
+  TmsVehicle,
+  TmsTransportPlan,
+  TmsShipment,
+  CreateShipmentInput,
+  TmsTrackingDetails,
 } from '@/types';
 
 /**
- * The single seam between the UI and "the backend".
- *
- * Today `mockApi` implements this against in-memory demo data. Later, a
- * `restApi` implementation can call the Java Spring Boot service (which in
- * turn talks to Supabase PostgreSQL) without any page component changing.
- *
- * Suggested REST mapping (see docs/API_CONTRACT.md):
- *   getDashboardStats   GET   /dashboard/stats?customerId=
- *   listTasks           GET   /tasks
- *   createTask          POST  /tasks
- *   assignTask          POST  /tasks/{id}/assignment
- *   listEmployees       GET   /employees
- *   setEmployeeApproval PATCH /employees/{id}/approval
- *   listChecklists      GET   /checklist-templates
- *   saveChecklist       PUT   /checklist-templates/{id}
- *   listEvidence        GET   /evidence
- *   decideEvidence      POST  /evidence/{id}/manager-decision
- *   listApprovals       GET   /approvals
- *   decideApproval      POST  /approvals/{id}/decision
- *   listWalletAccounts  GET   /wallets
- *   listTransactions    GET   /wallets/{employeeId}/transactions
+ * The single seam between the UI and the Spring Boot backend (`/api/v1/*`).
  */
 export interface Actor {
   name: string;
@@ -74,4 +59,12 @@ export interface ChaseHorseApi {
 
   listWalletAccounts(): Promise<WalletAccount[]>;
   listTransactions(employeeId: string): Promise<WalletTransaction[]>;
+
+  // TMS & Transport
+  listVehicles(): Promise<TmsVehicle[]>;
+  listShipments(): Promise<TmsShipment[]>;
+  createShipment(input: CreateShipmentInput): Promise<TmsShipment>;
+  getTracking(bookingRef: string): Promise<TmsTrackingDetails>;
+  listTransportPlans(): Promise<TmsTransportPlan[]>;
 }
+

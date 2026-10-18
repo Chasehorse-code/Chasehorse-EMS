@@ -1,21 +1,18 @@
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from 'react';
 import type { Role } from '@/types';
 import { ROLES, roleCapabilities, type Capability } from '@/config/access';
-import { DEMO_CUSTOMER_ID } from '@/data/mockData';
 import { useAuth } from './AuthContext';
 
 interface RoleContextValue {
   role: Role;
   setRole: (role: Role) => void;
   can: (capability: Capability) => boolean;
-  /** Demo customer identity used when role === 'customer'. */
   customerId: string | undefined;
-  /** Display name for audit-style notes or current user info. */
   actorName: string;
 }
 
 const RoleContext = createContext<RoleContextValue | null>(null);
-const STORAGE_KEY = 'chasehorse.demoRole';
+const STORAGE_KEY = 'chasehorse.activeRole';
 
 function readStoredRole(): Role {
   try {
@@ -29,12 +26,12 @@ function readStoredRole(): Role {
 
 const actorNames: Record<Role, string> = {
   admin: 'Admin Console',
-  manager: 'Meera Joshi (Manager)',
-  operations: 'Arjun Patel (Operations)',
-  employee: 'Rohan Sharma (Employee)',
-  customer: 'Demo Retail Enterprise',
-  partner: 'Kavita Transport Logistics',
-  field_worker: 'Devendra Kumar (Field Officer)',
+  manager: 'Operations Manager',
+  operations: 'Dispatch Operations',
+  employee: 'Field Employee',
+  customer: 'Enterprise Customer',
+  partner: 'Logistics Fleet Partner',
+  field_worker: 'Field Officer',
 };
 
 export function RoleProvider({ children }: { children: ReactNode }) {
@@ -71,11 +68,12 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       role,
       setRole,
       can: (capability) => roleCapabilities[role]?.includes(capability) ?? false,
-      customerId: role === 'customer' ? (auth.profile?.id || DEMO_CUSTOMER_ID) : undefined,
+      customerId: role === 'customer' ? auth.profile?.id : undefined,
       actorName: currentActorName,
     }),
     [role, setRole, auth.profile, currentActorName],
   );
+
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
 }

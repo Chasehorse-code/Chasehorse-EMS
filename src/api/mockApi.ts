@@ -191,4 +191,29 @@ export const mockApi: ChaseHorseApi = {
 
   listTransactions: (employeeId) =>
     respond(db.transactions.filter((t) => t.employeeId === employeeId)),
+
+  listVehicles: async () => [],
+  listShipments: async () => [],
+  createShipment: async (input) => ({
+    id: 'ship-1',
+    bookingRef: 'CH-TMS-0001',
+    customerId: 'cust-1',
+    originAddress: input.originAddress,
+    destinationAddress: input.destinationAddress,
+    cargoDescription: input.cargoDescription || '',
+    cargoWeightKg: input.cargoWeightKg || 0,
+    status: 'CONFIRMED',
+    totalPrice: input.totalPrice || 0,
+    createdAt: new Date().toISOString(),
+  }),
+  getTracking: async (bookingRef) => ({
+    id: 'ship-1',
+    bookingRef,
+    status: 'CONFIRMED',
+    originAddress: 'Hub A',
+    destinationAddress: 'Hub B',
+    createdAt: new Date().toISOString(),
+    events: [],
+  }),
+  listTransportPlans: async () => [],
 };
