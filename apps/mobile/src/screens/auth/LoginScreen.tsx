@@ -23,11 +23,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 }) => {
   const { login, verifyOtp } = useAuth();
 
-  const [email, setEmail] = useState('rahul.kumar@apexretail.com');
-  const [password, setPassword] = useState('••••••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [targetRole, setTargetRole] = useState<Role>('customer');
   const [otpRequired, setOtpRequired] = useState(false);
-  const [otp, setOtp] = useState('123456');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
@@ -43,7 +43,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         setOtpRequired(true);
         Alert.alert(
           'Email OTP Sent',
-          `A 6-digit verification security code has been sent to ${email}.\nDemo OTP: 123456`,
+          `A 6-digit verification security code has been sent to ${email}.`,
         );
       }
     } catch (err) {
@@ -64,7 +64,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setLoading(false);
 
     if (!success) {
-      Alert.alert('Verification Failed', 'Incorrect OTP. Try entering 123456.');
+      Alert.alert('Verification Failed', 'Invalid or expired OTP code.');
     }
   };
 
@@ -85,7 +85,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           style={[styles.roleTab, targetRole === 'customer' && styles.roleTabActive]}
           onPress={() => {
             setTargetRole('customer');
-            setEmail('rahul.kumar@apexretail.com');
             setOtpRequired(false);
           }}
         >
@@ -98,7 +97,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           style={[styles.roleTab, targetRole === 'employee' && styles.roleTabActive]}
           onPress={() => {
             setTargetRole('employee');
-            setEmail('siva.krishna@fieldworker.in');
             setOtpRequired(false);
           }}
         >
@@ -111,7 +109,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           style={[styles.roleTab, targetRole === 'manager' && styles.roleTabActive]}
           onPress={() => {
             setTargetRole('manager');
-            setEmail('suresh.reddy@chasehorse.com');
             setOtpRequired(false);
           }}
         >
@@ -185,10 +182,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 onChangeText={setOtp}
                 keyboardType="number-pad"
                 maxLength={6}
-                placeholder="123456"
+                placeholder="000000"
                 placeholderTextColor={colors.textLightMuted}
               />
-              <Text style={styles.otpHelper}>Demo Code: 123456</Text>
             </View>
 
             <TouchableOpacity style={styles.primaryBtn} onPress={handleVerifyOtp} disabled={loading}>

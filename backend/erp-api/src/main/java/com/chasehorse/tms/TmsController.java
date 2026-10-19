@@ -18,15 +18,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.chasehorse.auth.RoleAuthorization;
+
 @RestController
 @RequestMapping("/api/v1/tms")
 public class TmsController {
     private final JdbcTemplate jdbc;
     private final AuditService audit;
+    private final RoleAuthorization roleAuth;
 
-    public TmsController(JdbcTemplate jdbc, AuditService audit) {
+    public TmsController(JdbcTemplate jdbc, AuditService audit, RoleAuthorization roleAuth) {
         this.jdbc = jdbc;
         this.audit = audit;
+        this.roleAuth = roleAuth;
     }
 
     public record VehicleView(
@@ -117,12 +121,21 @@ public class TmsController {
 
     @GetMapping("/shipments")
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS', 'MANAGER', 'PARTNER', 'CUSTOMER')")
-    public List<ShipmentView> listShipments() {
-        return jdbc.query("""
+    public List<ShipmentView> listShipments(@AuthenticationPrincipal Jwt jwt) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        boolean isOpsOrAdmin = roles.stream().anyMatch(r ->
+            r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("OPERATIONS") || r.equalsIgnoreCase("MANAGER") || r.equalsIgnoreCase("PARTNER"));
+
+        String sql = """
             SELECT id, booking_ref, customer_id, origin_address, destination_address,
                    cargo_description, cargo_weight_kg, status, total_price, created_at
-            FROM tms_bookings ORDER BY created_at DESC LIMIT 100
-            """,
+            FROM tms_bookings
+            """ + (!isOpsOrAdmin ? " WHERE customer_id = ? " : "") +
+            " ORDER BY created_at DESC LIMIT 100";
+
+        Object[] params = !isOpsOrAdmin ? new Object[]{actorId} : new Object[]{};
+        return jdbc.query(sql,
             (rs, n) -> new ShipmentView(
                 rs.getObject("id", UUID.class),
                 rs.getString("booking_ref"),
@@ -134,7 +147,8 @@ public class TmsController {
                 rs.getString("status"),
                 rs.getBigDecimal("total_price"),
                 rs.getObject("created_at", OffsetDateTime.class)
-            )
+            ),
+            params
         );
     }
 
@@ -173,24 +187,27 @@ public class TmsController {
     }
 
     @GetMapping("/tracking/{bookingRef}")
-    public TrackingDetailsView getTracking(@PathVariable String bookingRef) {
-        List<TrackingDetailsView> list = jdbc.query("""
-            SELECT id, booking_ref, status, origin_address, destination_address,
+    public TrackingDetailsView getTracking(
+        @PathVariable String bookingRef,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        List<Map<String, Object>> list = jdbc.query("""
+            SELECT id, booking_ref, customer_id, status, origin_address, destination_address,
                    cargo_description, cargo_weight_kg, total_price, created_at
             FROM tms_bookings
             WHERE LOWER(booking_ref) = LOWER(?)
             """,
-            (rs, n) -> new TrackingDetailsView(
-                rs.getObject("id", UUID.class),
-                rs.getString("booking_ref"),
-                rs.getString("status"),
-                rs.getString("origin_address"),
-                rs.getString("destination_address"),
-                rs.getString("cargo_description"),
-                rs.getBigDecimal("cargo_weight_kg"),
-                rs.getBigDecimal("total_price"),
-                rs.getObject("created_at", OffsetDateTime.class),
-                List.of()
+            (rs, n) -> Map.of(
+                "id", rs.getObject("id", UUID.class),
+                "bookingRef", rs.getString("booking_ref"),
+                "customerId", rs.getObject("customer_id", UUID.class),
+                "status", rs.getString("status"),
+                "originAddress", rs.getString("origin_address"),
+                "destinationAddress", rs.getString("destination_address"),
+                "cargoDescription", rs.getString("cargo_description") != null ? rs.getString("cargo_description") : "",
+                "cargoWeightKg", rs.getBigDecimal("cargo_weight_kg") != null ? rs.getBigDecimal("cargo_weight_kg") : BigDecimal.ZERO,
+                "totalPrice", rs.getBigDecimal("total_price") != null ? rs.getBigDecimal("total_price") : BigDecimal.ZERO,
+                "createdAt", rs.getObject("created_at", OffsetDateTime.class)
             ),
             bookingRef
         );
@@ -199,7 +216,22 @@ public class TmsController {
             throw new ApiException(HttpStatus.NOT_FOUND, "No shipment found for reference: " + bookingRef);
         }
 
-        TrackingDetailsView base = list.get(0);
+        Map<String, Object> base = list.get(0);
+        UUID bookingId = (UUID) base.get("id");
+        UUID bookingCustomerId = (UUID) base.get("customerId");
+
+        // Sensitive commercial data protection: Only show total_price to the owning customer or authorized operations
+        boolean canViewCommercials = false;
+        if (jwt != null) {
+            UUID actorId = UUID.fromString(jwt.getSubject());
+            List<String> roles = roleAuth.getRoles(jwt.getSubject());
+            boolean isOpsOrAdmin = roles.stream().anyMatch(r ->
+                r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("OPERATIONS") || r.equalsIgnoreCase("MANAGER"));
+            canViewCommercials = isOpsOrAdmin || actorId.equals(bookingCustomerId);
+        }
+
+        BigDecimal visiblePrice = canViewCommercials ? (BigDecimal) base.get("totalPrice") : null;
+
         List<TrackingEventView> events = jdbc.query("""
             SELECT id, booking_id, status, location_description, notes, created_at
             FROM tms_tracking_events
@@ -214,13 +246,14 @@ public class TmsController {
                 rs.getString("notes"),
                 rs.getObject("created_at", OffsetDateTime.class)
             ),
-            base.id()
+            bookingId
         );
 
         return new TrackingDetailsView(
-            base.id(), base.bookingRef(), base.status(), base.originAddress(),
-            base.destinationAddress(), base.cargoDescription(), base.cargoWeightKg(),
-            base.totalPrice(), base.createdAt(), events
+            bookingId, (String) base.get("bookingRef"), (String) base.get("status"),
+            (String) base.get("originAddress"), (String) base.get("destinationAddress"),
+            (String) base.get("cargoDescription"), (BigDecimal) base.get("cargoWeightKg"),
+            visiblePrice, (OffsetDateTime) base.get("createdAt"), events
         );
     }
 

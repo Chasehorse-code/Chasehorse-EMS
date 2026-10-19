@@ -46,14 +46,20 @@ public class TaskController {
 
     @GetMapping
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE', 'CUSTOMER', 'FIELD_WORKER')")
-    public List<TaskService.TaskView> listTasks(@RequestParam(required = false) UUID customerId) {
-        return taskService.listTasks(customerId);
+    public List<TaskService.TaskView> listTasks(
+        @RequestParam(required = false) UUID customerId,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        return taskService.listTasks(customerId, jwt);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE', 'CUSTOMER', 'FIELD_WORKER')")
-    public TaskService.TaskView getTask(@PathVariable UUID id) {
-        return taskService.getTask(id);
+    public TaskService.TaskView getTask(
+        @PathVariable UUID id,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        return taskService.getTask(id, jwt);
     }
 
     @PostMapping

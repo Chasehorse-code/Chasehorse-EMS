@@ -94,6 +94,7 @@ export interface UserProfile {
   gstin?: string;
   region?: string;
   createdAt: string;
+  token?: string;
 }
 
 export interface GeotagMetadata {

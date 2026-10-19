@@ -18,11 +18,6 @@ import type {
 import type { Actor, ChaseHorseApi } from './contract';
 import { http } from './httpClient';
 import { haversineKm } from '@/utils/geo';
-import {
-  getStoredAccounts,
-  accountToEmployee,
-  updateStoredAccount,
-} from '@/utils/accountRegistry';
 import { getStoredTasks, saveStoredTask } from '@/utils/taskRegistry';
 
 const EMPTY_DASHBOARD_STATS: DashboardStats = {
@@ -421,17 +416,6 @@ export const restApi: ChaseHorseApi = {
       console.warn('[restApi] listEmployees error:', err);
     }
 
-    // Merge registered employee accounts from local account registry
-    const stored = getStoredAccounts()
-      .filter((a) => a.accountType === 'EMPLOYEE')
-      .map(accountToEmployee);
-
-    for (const emp of stored) {
-      if (!list.some((existing) => existing.email.toLowerCase() === emp.email.toLowerCase())) {
-        list.unshift(emp);
-      }
-    }
-
     return list;
   },
 
@@ -443,54 +427,30 @@ export const restApi: ChaseHorseApi = {
     const backendStatus = status === 'approved' ? 'ACTIVE' : status === 'rejected' ? 'REJECTED' : 'SUSPENDED';
     const assignedRole = subRole === 'manager' ? 'MANAGER' : 'FIELD_WORKER';
 
-    // Update stored local registry if present
-    updateStoredAccount(employeeId, {
-      accountStatus: status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'suspended',
-      subRole: subRole || 'field_worker',
+    const res = await http<any>(`/employees/${employeeId}/approval`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: backendStatus,
+        role: assignedRole,
+      }),
     });
 
-    try {
-      const res = await http<any>(`/employees/${employeeId}/approval`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: backendStatus,
-          role: assignedRole,
-        }),
-      });
-      return {
-        id: res.id,
-        name: res.displayName,
-        email: res.email || `${res.id.slice(0, 8)}@chasehorse.com`,
-        phone: res.phone || '+91 98000 00000',
-        region: res.region || 'Operational Region',
-        skills: [],
-        approvalStatus: status,
-        subRole: subRole || 'field_worker',
-        availability: 'available',
-        location: { lat: 16.24184, lng: 80.6448, area: res.region || 'Region' },
-        joinedAt: res.createdAt,
-        tasksCompleted: 0,
-        rating: 5.0,
-        documentsVerified: status === 'approved',
-      };
-    } catch {
-      return {
-        id: employeeId,
-        name: 'Field Worker',
-        email: `${employeeId}@chasehorse.com`,
-        phone: '+91 98000 00000',
-        region: 'Tenali / Guntur',
-        skills: [],
-        approvalStatus: status,
-        subRole: subRole || 'field_worker',
-        availability: 'available',
-        location: { lat: 16.24184, lng: 80.6448, area: 'Tenali' },
-        joinedAt: new Date().toISOString(),
-        tasksCompleted: 0,
-        rating: 5.0,
-        documentsVerified: status === 'approved',
-      };
-    }
+    return {
+      id: res.id,
+      name: res.displayName,
+      email: res.email || `${res.id.slice(0, 8)}@chasehorse.com`,
+      phone: res.phone || '+91 98000 00000',
+      region: res.region || 'Operational Region',
+      skills: [],
+      approvalStatus: status,
+      subRole: subRole || 'field_worker',
+      availability: 'available',
+      location: { lat: 16.24184, lng: 80.6448, area: res.region || 'Region' },
+      joinedAt: res.createdAt,
+      tasksCompleted: 0,
+      rating: 5.0,
+      documentsVerified: status === 'approved',
+    };
   },
 
   async listChecklists(): Promise<ChecklistTemplate[]> {

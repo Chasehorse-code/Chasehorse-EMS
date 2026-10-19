@@ -13,13 +13,18 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import com.chasehorse.auth.RoleAuthorization;
+import com.chasehorse.common.ApiException;
+
 @RestController
 @RequestMapping("/api/v1/employees")
 public class EmployeeController {
     private final JdbcTemplate jdbc;
+    private final RoleAuthorization roleAuth;
 
-    public EmployeeController(JdbcTemplate jdbc) {
+    public EmployeeController(JdbcTemplate jdbc, RoleAuthorization roleAuth) {
         this.jdbc = jdbc;
+        this.roleAuth = roleAuth;
     }
 
     public record EmployeeView(
@@ -92,20 +97,26 @@ public class EmployeeController {
             employeeId
         );
 
-        // 2. If a role is specified and status is ACTIVE, assign or update the role
+        // 2. If a role is specified and status is ACTIVE, restrict role assignment to authorized admins
         if (request.role() != null && !request.role().isBlank() && request.status() == AccountStatus.ACTIVE) {
             String roleUpper = request.role().toUpperCase();
-            // Validate role
-            var validRoles = List.of("FIELD_WORKER", "DRIVER", "DISPATCHER", "WAREHOUSE_STAFF", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "MANAGER");
-            if (validRoles.contains(roleUpper)) {
-                jdbc.update("""
-                    INSERT INTO app_role_assignments (user_id, role, granted_by)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT (user_id, role) DO NOTHING
-                    """,
-                    employeeId, roleUpper, actorId
-                );
+            boolean isAdmin = actorId != null && roleAuth.hasRole(actorId.toString(), "ADMIN");
+            if (!isAdmin) {
+                throw ApiException.forbidden("Only administrators can assign or modify application roles");
             }
+
+            var validRoles = List.of("FIELD_WORKER", "DRIVER", "DISPATCHER", "WAREHOUSE_STAFF", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "MANAGER");
+            if (!validRoles.contains(roleUpper)) {
+                throw ApiException.badRequest("Invalid role: " + request.role());
+            }
+
+            jdbc.update("""
+                INSERT INTO app_role_assignments (user_id, role, granted_by)
+                VALUES (?, ?, ?)
+                ON CONFLICT (user_id, role) DO NOTHING
+                """,
+                employeeId, roleUpper, actorId
+            );
         }
 
         // Return updated employee
