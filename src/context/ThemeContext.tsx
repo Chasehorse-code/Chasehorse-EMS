@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
-type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
@@ -9,22 +9,53 @@ interface ThemeContextType {
   toggleTheme: () => void;
 }
 
+const THEME_STORAGE_KEY = 'chasehorse-theme';
+
+function getStoredTheme(): Theme | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const val = localStorage.getItem(THEME_STORAGE_KEY);
+    if (val === 'light' || val === 'dark' || val === 'system') return val as Theme;
+  } catch (err) {
+    console.warn('[ThemeContext] LocalStorage read failed:', err);
+  }
+  return null;
+}
+
+function setStoredTheme(theme: Theme): void {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    }
+  } catch (err) {
+    console.warn('[ThemeContext] LocalStorage write failed:', err);
+  }
+}
+
+function getSystemPreference(): 'light' | 'dark' {
+  if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  return 'light';
+}
+
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Respect user stored choice first; if never chosen, respect prefers-color-scheme fallback (defaulting to light)
   const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('chasehorse-theme') as Theme | null;
-    return saved || 'system';
+    const saved = getStoredTheme();
+    if (saved) return saved;
+    // Default to light (white and blue); respect prefers-color-scheme only if explicitly dark
+    return getSystemPreference() === 'dark' ? 'system' : 'light';
   });
 
-  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
-  });
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => getSystemPreference());
+  const initialMountRef = useRef(true);
 
+  // Listen to system preference changes if in 'system' mode
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       setSystemTheme(e.matches ? 'dark' : 'light');
@@ -33,19 +64,36 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  const resolvedTheme = theme === 'system' ? systemTheme : theme;
+  const resolvedTheme: 'light' | 'dark' = theme === 'system' ? systemTheme : theme;
 
+  // Apply data-theme attribute on <html> with temporary "theming" class for ~450ms cross-fade
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    const root = document.documentElement;
+
+    if (!initialMountRef.current) {
+      root.classList.add('theming');
+      const timer = window.setTimeout(() => {
+        root.classList.remove('theming');
+      }, 450);
+
+      root.setAttribute('data-theme', resolvedTheme);
+      return () => {
+        window.clearTimeout(timer);
+        root.classList.remove('theming');
+      };
+    } else {
+      initialMountRef.current = false;
+      root.setAttribute('data-theme', resolvedTheme);
+    }
   }, [resolvedTheme]);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('chasehorse-theme', newTheme);
+    setStoredTheme(newTheme);
   };
 
   const toggleTheme = () => {
-    const next = resolvedTheme === 'dark' ? 'light' : 'dark';
+    const next: 'light' | 'dark' = resolvedTheme === 'dark' ? 'light' : 'dark';
     setTheme(next);
   };
 
