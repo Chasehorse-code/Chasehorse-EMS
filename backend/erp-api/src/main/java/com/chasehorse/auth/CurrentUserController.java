@@ -30,16 +30,28 @@ public class CurrentUserController {
             ? null  // extract from nested claim if needed
             : email;
 
-        // Try to extract display name from JWT user_metadata
+        // Try to extract display name and metadata from JWT user_metadata
         Object userMetadata = jwt.getClaim("user_metadata");
         String displayName = null;
+        String phone = null;
+        String region = null;
+        String accountType = null;
         if (userMetadata instanceof java.util.Map<?, ?> meta) {
             Object fullName = meta.get("full_name");
             if (fullName == null) fullName = meta.get("name");
             if (fullName instanceof String s && !s.isBlank()) displayName = s;
+
+            Object p = meta.get("phone");
+            if (p instanceof String s && !s.isBlank()) phone = s;
+
+            Object r = meta.get("region");
+            if (r instanceof String s && !s.isBlank()) region = s;
+
+            Object at = meta.get("account_type");
+            if (at instanceof String s && !s.isBlank()) accountType = s;
         }
         if (displayName == null) displayName = email;
 
-        return profileService.findOrCreate(userId, email, displayName);
+        return profileService.findOrCreate(userId, email, displayName, phone, region, accountType);
     }
 }

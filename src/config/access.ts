@@ -2,35 +2,59 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Camera,
   ClipboardList,
-  Compass,
   LayoutDashboard,
   ListChecks,
   MapPin,
   ShieldCheck,
-  Truck,
   Users,
   Wallet,
+  Home,
+  PlusSquare,
+  Clock,
+  Compass,
+  BarChart3,
+  Settings,
+  HelpCircle,
 } from 'lucide-react';
 import type { Role } from '@/types';
 
 export const roleMeta: Record<Role, { label: string; blurb: string }> = {
-  admin: { label: 'Admin', blurb: 'Full access to all modules, users and configurations' },
-  manager: { label: 'Manager', blurb: 'Teams, tasks, checklists and evidence review' },
-  operations: { label: 'Operations', blurb: 'Dispatch, fleet logistics, nearby monitoring and reward approvals' },
-  employee: { label: 'Employee', blurb: 'Internal staff execution, task status and attendance' },
-  customer: { label: 'Customer', blurb: 'Create task requests and monitor real-time fulfillment' },
-  partner: { label: 'Partner', blurb: 'Third-party transport and logistics coordination' },
-  field_worker: { label: 'Field Worker', blurb: 'Mobile task execution, photos, checklists and rewards' },
+  admin: {
+    label: 'Platform Admin',
+    blurb: 'Full platform administration, user & manager assignments, system audit history',
+  },
+  operations_manager: {
+    label: 'Operations Manager',
+    blurb: 'Task review queue, AI verification check, on-field worker approval, reward release',
+  },
+  employee: {
+    label: 'On-Field Worker',
+    blurb: 'Location-aware task discovery, checklists, geo-tagged photo evidence, wallet earnings',
+  },
+  customer: {
+    label: 'Customer',
+    blurb: 'Create field tasks, monitor live execution progress, review completed evidence',
+  },
+  // Backward compatibility aliases
+  manager: {
+    label: 'Operations Manager',
+    blurb: 'Task review queue, AI verification check, on-field worker approval, reward release',
+  },
+  operations: {
+    label: 'Operations',
+    blurb: 'Task review queue, AI verification check, on-field worker approval, reward release',
+  },
+  field_worker: {
+    label: 'On-Field Worker',
+    blurb: 'Location-aware task discovery, checklists, geo-tagged photo evidence, wallet earnings',
+  },
 };
 
 export const ROLES: Role[] = [
   'admin',
-  'manager',
-  'operations',
+  'operations_manager',
   'employee',
   'customer',
-  'partner',
-  'field_worker',
 ];
 
 export type Capability =
@@ -41,7 +65,6 @@ export type Capability =
   | 'decideEvidence'
   | 'decideApprovals'
   | 'viewAiResults'
-  | 'manageTms'
   | 'manageWallets';
 
 export const roleCapabilities: Record<Role, Capability[]> = {
@@ -53,7 +76,16 @@ export const roleCapabilities: Record<Role, Capability[]> = {
     'decideEvidence',
     'decideApprovals',
     'viewAiResults',
-    'manageTms',
+    'manageWallets',
+  ],
+  operations_manager: [
+    'createTasks',
+    'assignTasks',
+    'manageEmployees',
+    'editChecklists',
+    'decideEvidence',
+    'decideApprovals',
+    'viewAiResults',
     'manageWallets',
   ],
   manager: [
@@ -62,27 +94,28 @@ export const roleCapabilities: Record<Role, Capability[]> = {
     'manageEmployees',
     'editChecklists',
     'decideEvidence',
+    'decideApprovals',
     'viewAiResults',
-    'manageTms',
+    'manageWallets',
   ],
   operations: [
     'createTasks',
     'assignTasks',
+    'manageEmployees',
     'decideApprovals',
+    'decideEvidence',
     'viewAiResults',
-    'manageTms',
     'manageWallets',
   ],
   employee: [
     'viewAiResults',
   ],
+  field_worker: [
+    'viewAiResults',
+  ],
   customer: [
     'createTasks',
   ],
-  partner: [
-    'manageTms',
-  ],
-  field_worker: [],
 };
 
 export interface NavItem {
@@ -94,23 +127,140 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'operations', 'customer', 'partner'] },
-  { to: '/truck-plans', label: 'Truck Plans', icon: Truck, roles: ['admin', 'manager', 'operations', 'customer', 'partner'] },
-  { to: '/bookings', label: 'Bookings', icon: ClipboardList, roles: ['admin', 'manager', 'operations', 'customer', 'partner'] },
-  { to: '/tracking', label: 'Shipment Tracking', icon: Compass, roles: ['admin', 'manager', 'operations', 'customer', 'partner', 'employee', 'field_worker'] },
-  { to: '/tasks', label: 'Tasks', icon: ClipboardList, roles: ['admin', 'manager', 'operations', 'customer', 'employee', 'field_worker'] },
-  { to: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'manager'] },
-  { to: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['admin', 'manager'] },
-  { to: '/evidence', label: 'Photo evidence', icon: Camera, roles: ['admin', 'manager', 'operations', 'customer', 'field_worker'] },
-  { to: '/approvals', label: 'Approval queue', icon: ShieldCheck, roles: ['admin', 'operations', 'manager'] },
-  { to: '/wallet', label: 'Wallets', icon: Wallet, roles: ['admin', 'operations', 'employee', 'field_worker'] },
-  { to: '/nearby', label: 'Nearby tasks', icon: MapPin, roles: ['admin', 'manager', 'operations', 'employee', 'field_worker'] },
+  {
+    to: '/overview',
+    label: 'Operations Overview',
+    icon: LayoutDashboard,
+    roles: ['admin', 'operations_manager', 'manager', 'operations'],
+  },
+  {
+    to: '/nearby',
+    label: 'Nearby Tasks (GPS)',
+    icon: MapPin,
+    roles: ['admin', 'operations_manager', 'manager', 'operations', 'employee', 'field_worker'],
+  },
+  {
+    to: '/tasks',
+    label: 'Field Tasks',
+    icon: ClipboardList,
+    roles: ['admin', 'operations_manager', 'manager', 'operations', 'customer', 'employee', 'field_worker'],
+  },
+  {
+    to: '/evidence',
+    label: 'Photo Evidence & AI',
+    icon: Camera,
+    roles: ['admin', 'operations_manager', 'manager', 'operations', 'customer', 'employee', 'field_worker'],
+  },
+  {
+    to: '/approvals',
+    label: 'Review & Approvals',
+    icon: ShieldCheck,
+    roles: ['admin', 'operations_manager', 'manager', 'operations'],
+  },
+  {
+    to: '/employees',
+    label: 'Workers & Staff',
+    icon: Users,
+    roles: ['admin', 'operations_manager', 'manager'],
+  },
+  {
+    to: '/checklists',
+    label: 'Checklist Templates',
+    icon: ListChecks,
+    roles: ['admin', 'operations_manager', 'manager'],
+  },
+  {
+    to: '/wallet',
+    label: 'Rewards Wallet',
+    icon: Wallet,
+    roles: ['admin', 'operations_manager', 'manager', 'operations', 'employee', 'field_worker'],
+  },
+];
+
+/**
+ * Enterprise SaaS Customer Portal navigation items
+ */
+export const customerNavItems: NavItem[] = [
+  {
+    to: '/customer/dashboard',
+    label: 'Overview',
+    icon: Home,
+    roles: ['customer'],
+    end: true,
+  },
+  {
+    to: '/tasks',
+    label: 'My Tasks',
+    icon: ClipboardList,
+    roles: ['customer'],
+  },
+  {
+    to: '/tasks/new',
+    label: 'Create Task',
+    icon: PlusSquare,
+    roles: ['customer'],
+  },
+  {
+    to: '/customer/history',
+    label: 'Task History',
+    icon: Clock,
+    roles: ['customer'],
+  },
+  {
+    to: '/evidence',
+    label: 'Photo Evidence',
+    icon: Camera,
+    roles: ['customer'],
+  },
+  {
+    to: '/customer/tracking',
+    label: 'Tracking',
+    icon: Compass,
+    roles: ['customer'],
+  },
+  {
+    to: '/customer/reports',
+    label: 'Reports',
+    icon: BarChart3,
+    roles: ['customer'],
+  },
+  {
+    to: '/customer/profile',
+    label: 'Profile & Settings',
+    icon: Settings,
+    roles: ['customer'],
+  },
+  {
+    to: '/customer/support',
+    label: 'Help & Support',
+    icon: HelpCircle,
+    roles: ['customer'],
+  },
 ];
 
 export function canAccessPath(role: Role, pathname: string): boolean {
-  if (pathname === '/tasks/new' || pathname === '/bookings/new') return true;
-  const match = navItems
+  if (pathname === '/tasks/new') return true;
+  if (pathname === '/pending-approval') return true;
+  if (pathname === '/admin/dashboard' || pathname === '/employee/dashboard') return true;
+  if (pathname.startsWith('/customer/')) return true;
+
+  // Strict role boundaries: customers cannot access employee or manager features
+  if (role === 'customer') {
+    if (
+      pathname === '/nearby' ||
+      pathname === '/wallet' ||
+      pathname === '/employees' ||
+      pathname === '/checklists' ||
+      pathname === '/approvals'
+    ) {
+      return false;
+    }
+  }
+
+  const allItems = [...navItems, ...customerNavItems];
+  const match = allItems
     .filter((n) => (n.end ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + '/')))
     .sort((a, b) => b.to.length - a.to.length)[0];
+
   return match ? match.roles.includes(role) : true;
 }

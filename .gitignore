@@ -9,3 +9,5 @@ dist
 *.tsbuildinfo
 target/
 **/target/
+.expo/
+**/.expo/

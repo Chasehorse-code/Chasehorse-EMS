@@ -1,588 +1,474 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  CheckCircle2,
-  Clock,
-  Compass,
-  FileCheck2,
+  Briefcase,
+  Building2,
+  Camera,
   HardHat,
   MapPin,
-  Menu,
-  Package,
-  Phone,
-  Search,
   Shield,
-  Truck,
-  Users,
-  X,
-  Mail,
-  ExternalLink,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
 } from 'lucide-react';
-import { api } from '@/api';
-import { useAsync } from '@/hooks/useAsync';
-import { useAuth } from '@/context/AuthContext';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import type { TmsTrackingDetails } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 export function LandingPage() {
-  const navigate = useNavigate();
   const { session } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Quick tracking input state
-  const [trackingRef, setTrackingRef] = useState('');
-  const [trackingLoading, setTrackingLoading] = useState(false);
-  const [trackingResult, setTrackingResult] = useState<TmsTrackingDetails | null>(null);
-  const [trackingError, setTrackingError] = useState<string | null>(null);
-
-  // Live transport plans from real API
-  const plansState = useAsync(() => api.listTransportPlans(), []);
-
-  async function handleQuickTrack(e: FormEvent) {
-    e.preventDefault();
-    if (!trackingRef.trim()) return;
-
-    setTrackingLoading(true);
-    setTrackingError(null);
-    setTrackingResult(null);
-
-    try {
-      const data = await api.getTracking(trackingRef.trim());
-      setTrackingResult(data);
-    } catch (err: any) {
-      setTrackingError(err.message || 'No active shipment found with this reference number.');
-    } finally {
-      setTrackingLoading(false);
-    }
-  }
 
   return (
-    <div className="landing">
-      {/* Header */}
-      <header className="landing-header">
-        <div className="landing-header__inner">
-          <Link to="/" className="landing-brand">
-            <div className="landing-brand__logo">
-              <Truck size={20} />
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--color-bg, #0b1120)',
+      color: 'var(--color-text, #f8fafc)',
+      fontFamily: 'inherit',
+    }}>
+      {/* Navigation Topbar */}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        backdropFilter: 'blur(12px)',
+        background: 'rgba(11, 17, 32, 0.85)',
+        borderBottom: '1px solid var(--color-border, #1e293b)',
+        padding: '0.875rem 1.5rem',
+      }}>
+        <div style={{
+          maxWidth: '1240px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: '1.1rem',
+              color: '#ffffff',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
+            }}>
+              CH
             </div>
-            <span>CHASEHORSE</span>
+            <div>
+              <span style={{ fontSize: '1.2rem', fontWeight: 700, letterSpacing: '-0.02em', display: 'block' }}>ChaseHorse</span>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Field Ops ERP</span>
+            </div>
           </Link>
 
-          <nav className="landing-nav" aria-label="Main navigation">
-            <a href="#services" className="landing-nav__link">Services</a>
-            <a href="#truck-plans" className="landing-nav__link">Truck Plans</a>
-            <a href="#tracking" className="landing-nav__link">Tracking</a>
-            <a href="#how-it-works" className="landing-nav__link">How It Works</a>
-            <a href="#about" className="landing-nav__link">About</a>
-            <a href="#contact" className="landing-nav__link">Contact</a>
+          {/* Desktop Nav */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <a href="#how-it-works" style={{ color: '#94a3b8', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 500 }}>
+              Task Lifecycle
+            </a>
+            <a href="#roles" style={{ color: '#94a3b8', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 500 }}>
+              Platform Roles
+            </a>
+            <a href="#evidence-ai" style={{ color: '#94a3b8', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 500 }}>
+              Geo-Tag & Gemini AI
+            </a>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '1rem' }}>
+              <ThemeToggle />
+              {session ? (
+                <Link to="/overview" className="btn btn--primary btn--sm" style={{ textDecoration: 'none' }}>
+                  Launch Console →
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login" className="btn btn--ghost btn--sm" style={{ textDecoration: 'none' }}>
+                    Sign In
+                  </Link>
+                  <Link to="/register/employee" className="btn btn--primary btn--sm" style={{ textDecoration: 'none' }}>
+                    Join as Worker
+                  </Link>
+                </>
+              )}
+            </div>
           </nav>
-
-          <div className="landing-header__actions">
-            <ThemeToggle />
-
-            {session ? (
-              <Button onClick={() => navigate('/admin/dashboard')} tone="primary">
-                Console <ArrowRight size={15} style={{ marginLeft: '4px' }} />
-              </Button>
-            ) : (
-              <>
-                <Link to="/login" className="btn btn--ghost btn--md">
-                  Sign In
-                </Link>
-                <Link to="/login" className="btn btn--primary btn--md">
-                  Get Started
-                </Link>
-              </>
-            )}
-
-            <button
-              type="button"
-              className="landing-mobile-btn"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle navigation menu"
-            >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
         </div>
-
-        {mobileMenuOpen && (
-          <div className="landing-mobile-menu">
-            <a href="#services" className="landing-nav__link" onClick={() => setMobileMenuOpen(false)}>Services</a>
-            <a href="#truck-plans" className="landing-nav__link" onClick={() => setMobileMenuOpen(false)}>Truck Plans</a>
-            <a href="#tracking" className="landing-nav__link" onClick={() => setMobileMenuOpen(false)}>Tracking</a>
-            <a href="#how-it-works" className="landing-nav__link" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
-            <a href="#about" className="landing-nav__link" onClick={() => setMobileMenuOpen(false)}>About</a>
-            <a href="#contact" className="landing-nav__link" onClick={() => setMobileMenuOpen(false)}>Contact</a>
-            <hr style={{ borderColor: 'var(--border)', margin: '0.5rem 0' }} />
-            <Link to="/login" className="btn btn--primary btn--md" style={{ width: '100%', justifyContent: 'center' }}>
-              Access Platform
-            </Link>
-          </div>
-        )}
       </header>
 
       {/* Hero Section */}
-      <section className="landing-hero">
-        <div className="landing-hero__inner">
-          <div className="landing-hero__content">
-            <div className="hero-pill">
-              <Shield size={14} />
-              <span>Enterprise Freight & Workforce Orchestration</span>
+      <section style={{
+        padding: '5rem 1.5rem 4rem 1.5rem',
+        maxWidth: '1240px',
+        margin: '0 auto',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '6px 14px',
+          borderRadius: '9999px',
+          background: 'rgba(37, 99, 235, 0.12)',
+          border: '1px solid rgba(37, 99, 235, 0.25)',
+          color: '#60a5fa',
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          marginBottom: '1.75rem',
+        }}>
+          <Sparkles size={14} />
+          <span>Pan-India Field Operations • AI Evidence Validation • Instant Wallet Ledgers</span>
+        </div>
+
+        <h1 style={{
+          fontSize: 'clamp(2.25rem, 5vw, 3.75rem)',
+          fontWeight: 800,
+          lineHeight: 1.15,
+          letterSpacing: '-0.03em',
+          maxWidth: '960px',
+          margin: '0 auto 1.5rem auto',
+          background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
+          Nationwide Field Tasks Executed With Real GPS & AI Verification
+        </h1>
+
+        <p style={{
+          fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+          color: '#94a3b8',
+          maxWidth: '740px',
+          margin: '0 auto 2.5rem auto',
+          lineHeight: 1.6,
+        }}>
+          Empowering enterprises to create field tasks and on-field workers to discover nearby work, capture geo-tagged proof, verify compliance with Gemini AI, and earn instant rewards.
+        </p>
+
+        {/* Action CTAs */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          marginBottom: '3.5rem',
+        }}>
+          <Link
+            to="/register/employee"
+            className="btn btn--primary"
+            style={{
+              padding: '14px 28px',
+              fontSize: '1rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              textDecoration: 'none',
+              boxShadow: '0 8px 25px -4px rgba(37, 99, 235, 0.5)',
+            }}
+          >
+            <Briefcase size={18} />
+            Join as On-Field Worker
+            <ArrowRight size={16} />
+          </Link>
+
+          <Link
+            to="/register/customer"
+            style={{
+              padding: '14px 28px',
+              fontSize: '1rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              color: '#34d399',
+              fontWeight: 600,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <Building2 size={18} />
+            Post Tasks (Customer Portal)
+          </Link>
+
+          <Link
+            to="/login"
+            className="btn btn--ghost"
+            style={{
+              padding: '14px 24px',
+              fontSize: '0.95rem',
+              textDecoration: 'none',
+              color: '#cbd5e1',
+            }}
+          >
+            Operations Login →
+          </Link>
+        </div>
+
+        {/* Feature Highlights Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '1.25rem',
+          textAlign: 'left',
+          marginTop: '2rem',
+        }}>
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            border: '1px solid var(--color-border, #1e293b)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+          }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', color: '#60a5fa' }}>
+              <MapPin size={22} />
             </div>
-
-            <h1 className="landing-hero__title">
-              Powering Modern Logistics with <span>Real-Time Intelligence</span>
-            </h1>
-
-            <p className="landing-hero__desc">
-              ChaseHorse is India’s premier enterprise transportation management and field operations
-              platform. Seamlessly dispatch freight, track high-value cargo, automate site verifications,
-              and settle digital logistics workflows from a single unified portal.
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Real GPS Range Discovery</h3>
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+              On-field workers discover open tasks within an exact radius from their live device location using HTML5 Geolocation & PostGIS range queries.
             </p>
-
-            <div className="landing-hero__ctas">
-              <Link to="/bookings/new" className="btn btn--primary btn--lg">
-                Book Transport <ArrowRight size={18} style={{ marginLeft: '6px' }} />
-              </Link>
-              <a href="#tracking" className="btn btn--secondary btn--lg">
-                <Search size={18} style={{ marginRight: '6px' }} /> Track Shipment
-              </a>
-            </div>
-
-            <div className="hero-features">
-              <div className="hero-feature-item">
-                <CheckCircle2 size={16} />
-                <span>GPS Geofenced Verification</span>
-              </div>
-              <div className="hero-feature-item">
-                <CheckCircle2 size={16} />
-                <span>Multi-Axle Fleet Allocation</span>
-              </div>
-              <div className="hero-feature-item">
-                <CheckCircle2 size={16} />
-                <span>Zero-Trust Cryptographic Audit</span>
-              </div>
-            </div>
           </div>
 
-          {/* Quick Tracking Widget */}
-          <div className="landing-hero__visual" id="tracking">
-            <div className="tracking-widget-card">
-              <div className="tracking-widget-card__header">
-                <div className="service-icon-wrap" style={{ margin: 0, width: 40, height: 40 }}>
-                  <Compass size={20} />
-                </div>
-                <div>
-                  <h3 className="tracking-widget-card__title">Live Shipment Lookup</h3>
-                  <p className="tracking-widget-card__desc">Verify transport milestone status in real time</p>
-                </div>
-              </div>
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            border: '1px solid var(--color-border, #1e293b)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+          }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', color: '#c084fc' }}>
+              <Camera size={22} />
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Geo-Tagged Camera Evidence</h3>
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+              Every evidence photo is stamped with live GPS coordinates, accuracy, address, and ISO timestamp directly onto a presentation overlay.
+            </p>
+          </div>
 
-              <form onSubmit={handleQuickTrack}>
-                <div className="tracking-input-group">
-                  <input
-                    type="text"
-                    className="tracking-input"
-                    placeholder="Enter Booking Reference (e.g. CH-TMS-10293)"
-                    value={trackingRef}
-                    onChange={(e) => setTrackingRef(e.target.value)}
-                    required
-                  />
-                  <Button type="submit" tone="primary" disabled={trackingLoading}>
-                    {trackingLoading ? 'Checking...' : 'Track'}
-                  </Button>
-                </div>
-              </form>
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            border: '1px solid var(--color-border, #1e293b)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+          }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(234, 179, 8, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', color: '#facc15' }}>
+              <Sparkles size={22} />
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Gemini AI Verification</h3>
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+              Multimodal AI cross-checks image relevance, detects duplicates, verifies GPS proximity against task requirements, and flags exceptions for manager review.
+            </p>
+          </div>
 
-              {trackingError && (
-                <div className="notice notice--warning" style={{ marginTop: '1rem', fontSize: '0.875rem' }}>
-                  {trackingError}
-                </div>
-              )}
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            border: '1px solid var(--color-border, #1e293b)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+          }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', color: '#34d399' }}>
+              <Wallet size={22} />
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Immutable Ledger Rewards</h3>
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+              Upon Operations Manager approval, rewards credit idempotently into the worker's wallet with cryptographic reference to task and evidence IDs.
+            </p>
+          </div>
+        </div>
+      </section>
 
-              {trackingResult && (
-                <div className="tracking-result-box">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <strong style={{ fontSize: '1rem', color: 'var(--text)' }}>{trackingResult.bookingRef}</strong>
-                    <Badge tone={trackingResult.status === 'DELIVERED' ? 'success' : 'info'}>
-                      {trackingResult.status}
-                    </Badge>
-                  </div>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0 0 0.5rem 0' }}>
-                    <strong>Route:</strong> {trackingResult.originAddress} → {trackingResult.destinationAddress}
-                  </p>
-                  {trackingResult.cargoDescription && (
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
-                      <strong>Cargo:</strong> {trackingResult.cargoDescription} ({trackingResult.cargoWeightKg} kg)
-                    </p>
-                  )}
-                  <Link
-                    to={`/tracking/${trackingResult.bookingRef}`}
-                    style={{ fontSize: '0.875rem', color: 'var(--primary-blue)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    View detailed milestones timeline <ExternalLink size={13} />
-                  </Link>
-                </div>
-              )}
+      {/* Task Lifecycle Section */}
+      <section id="how-it-works" style={{
+        padding: '5rem 1.5rem',
+        background: 'var(--color-surface-sunken, #080d19)',
+        borderTop: '1px solid var(--color-border, #1e293b)',
+        borderBottom: '1px solid var(--color-border, #1e293b)',
+      }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: 700, margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>
+              End-to-End Task Lifecycle
+            </h2>
+            <p style={{ color: '#94a3b8', margin: 0, fontSize: '1rem' }}>
+              Built according to the ChaseHorse ERP Implementation Blueprint
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.5rem',
+          }}>
+            <div style={{
+              background: 'var(--color-surface, #131d31)',
+              borderRadius: '14px',
+              padding: '1.75rem',
+              border: '1px solid var(--color-border, #1e293b)',
+              position: 'relative',
+            }}>
+              <div style={{ color: '#3b82f6', fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 01</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Task Creation & Radius</h3>
+              <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.6 }}>
+                Customer or Admin defines task title, description, reward (INR), address, target coordinates, allowed radius, and checklist template (e.g., Shelf Audit).
+              </p>
+            </div>
+
+            <div style={{
+              background: 'var(--color-surface, #131d31)',
+              borderRadius: '14px',
+              padding: '1.75rem',
+              border: '1px solid var(--color-border, #1e293b)',
+              position: 'relative',
+            }}>
+              <div style={{ color: '#3b82f6', fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 02</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Location Discovery & Accept</h3>
+              <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.6 }}>
+                Eligible approved on-field workers discover tasks nearby their GPS location. Acceptance is atomic so exclusive tasks cannot be claimed twice.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'var(--color-surface, #131d31)',
+              borderRadius: '14px',
+              padding: '1.75rem',
+              border: '1px solid var(--color-border, #1e293b)',
+              position: 'relative',
+            }}>
+              <div style={{ color: '#3b82f6', fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 03</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Geo-Tag & Checklist Work</h3>
+              <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.6 }}>
+                Worker navigates to site, completes checklist items, and captures camera evidence stamped with timestamp, location, and address metadata.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'var(--color-surface, #131d31)',
+              borderRadius: '14px',
+              padding: '1.75rem',
+              border: '1px solid var(--color-border, #1e293b)',
+              position: 'relative',
+            }}>
+              <div style={{ color: '#10b981', fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.5rem' }}>STEP 04</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: '0 0 0.5rem 0' }}>Manager Review & Reward</h3>
+              <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, lineHeight: 1.6 }}>
+                Operations Manager reviews AI verification signals and evidence photos, approves task completion, and server releases reward credit to employee wallet.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Services Section */}
-      <section className="landing-section" id="services">
-        <div className="landing-section__header">
-          <span className="section-label">Enterprise Capabilities</span>
-          <h2 className="section-title">End-to-End Transportation & Field Workforce Services</h2>
-          <p className="section-desc">
-            Engineered for high-volume enterprise supply chains, regional distribution networks,
-            and field verification teams across urban and industrial corridors.
+      {/* Role Architecture Section */}
+      <section id="roles" style={{ padding: '5rem 1.5rem', maxWidth: '1240px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 700, margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>
+            Four Distinct Platform Roles
+          </h2>
+          <p style={{ color: '#94a3b8', margin: 0, fontSize: '1rem' }}>
+            Governed by Spring Security & Supabase PostgreSQL Row Level Security
           </p>
         </div>
 
-        <div className="services-grid">
-          <div className="service-card">
-            <div className="service-icon-wrap">
-              <Truck size={24} />
-            </div>
-            <h3 className="service-card__title">Freight & Truck Transport</h3>
-            <p className="service-card__desc">
-              On-demand booking for Express Cargo Vans, Medium 14ft Freight, and Heavy Duty Multi-Axle
-              trucks with pre-negotiated base rates and dynamic distance calculation.
-            </p>
-            <Link to="/bookings/new" className="service-card__link">
-              Book Transport <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          <div className="service-card">
-            <div className="service-icon-wrap">
-              <Users size={24} />
-            </div>
-            <h3 className="service-card__title">Workforce & Field Operations</h3>
-            <p className="service-card__desc">
-              Empower ground personnel with GPS-validated tasks, standardized audit checklists,
-              site survey questionnaires, and cryptographic proof of work.
-            </p>
-            <Link to="/tasks" className="service-card__link">
-              View Task Operations <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          <div className="service-card">
-            <div className="service-icon-wrap">
-              <Compass size={24} />
-            </div>
-            <h3 className="service-card__title">Real-Time Milestone Tracking</h3>
-            <p className="service-card__desc">
-              Zero-latency shipment milestone updates, automatic event logging, transit checkpoint
-              stamps, and instant customer notifications across delivery corridors.
-            </p>
-            <a href="#tracking" className="service-card__link">
-              Track Consignment <ArrowRight size={14} />
-            </a>
-          </div>
-
-          <div className="service-card">
-            <div className="service-icon-wrap">
-              <Package size={24} />
-            </div>
-            <h3 className="service-card__title">Enterprise Commerce & Supplies</h3>
-            <p className="service-card__desc">
-              Streamline multi-point B2B retail distribution, store replenishment, inventory audit
-              verifications, and digital proof of delivery documentation.
-            </p>
-            <Link to="/login" className="service-card__link">
-              Partner Integration <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          <div className="service-card">
-            <div className="service-icon-wrap">
-              <HardHat size={24} />
-            </div>
-            <h3 className="service-card__title">HSE & Vehicle Safety Audits</h3>
-            <p className="service-card__desc">
-              Pre-trip vehicle checklists, compliance surveys, health and safety inspections, and
-              tamper-proof photo evidence collection with automated review queues.
-            </p>
-            <Link to="/checklists" className="service-card__link">
-              Explore Checklists <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          <div className="service-card">
-            <div className="service-icon-wrap">
-              <FileCheck2 size={24} />
-            </div>
-            <h3 className="service-card__title">Digital Settlement & Wallet Ledger</h3>
-            <p className="service-card__desc">
-              Dual-entry financial ledger for task payouts, driver settlements, transporter billing,
-              and verifiable audit trails backed by PostgreSQL row-level security.
-            </p>
-            <Link to="/wallet" className="service-card__link">
-              Financial Overview <ArrowRight size={14} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Truck Plans Section */}
-      <section className="landing-section landing-section--alt" id="truck-plans">
-        <div className="landing-section__header">
-          <span className="section-label">Fleet Specifications</span>
-          <h2 className="section-title">Verified Transport Plans & Vehicle Classes</h2>
-          <p className="section-desc">
-            Directly provisioned from our live logistics database. Clear tonnage capacities,
-            transparent base pricing, and guaranteed dispatch SLAs.
-          </p>
-        </div>
-
-        <div className="plans-grid">
-          {plansState.data && plansState.data.length > 0 ? (
-            plansState.data.map((plan) => (
-              <div key={plan.id} className="plan-card">
-                <span className="plan-card__vehicle-type">{plan.vehicleType}</span>
-                <h3 className="plan-card__title">{plan.planName}</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
-                  {plan.description}
-                </p>
-
-                <div className="plan-card__price-box">
-                  <span className="plan-price-num">₹{plan.baseRateInr.toLocaleString()}</span>
-                  <span className="plan-price-unit">base + ₹{plan.ratePerKmInr}/km</span>
-                </div>
-
-                <ul className="plan-specs">
-                  <li className="plan-spec-item">
-                    <CheckCircle2 size={16} color="var(--success)" />
-                    <span>Capacity: <strong>{plan.maxCapacityKg} kg</strong> payload</span>
-                  </li>
-                  <li className="plan-spec-item">
-                    <Clock size={16} color="var(--primary-blue)" />
-                    <span>Est. Transit: <strong>{plan.estimatedHours} Hours</strong></span>
-                  </li>
-                  <li className="plan-spec-item">
-                    <Shield size={16} color="var(--accent-amber)" />
-                    <span>Transit Cargo Insurance included</span>
-                  </li>
-                </ul>
-
-                <Link
-                  to={`/bookings/new?planId=${plan.id}`}
-                  className="btn btn--primary btn--md"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  Select Plan & Book
-                </Link>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            borderRadius: '14px',
+            padding: '1.5rem',
+            border: '1px solid var(--color-border, #1e293b)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
+                <Shield size={20} />
               </div>
-            ))
-          ) : (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem 1rem' }}>
-              <p className="muted">Loading live fleet availability...</p>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Platform Admin</h3>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="landing-section" id="how-it-works">
-        <div className="landing-section__header">
-          <span className="section-label">Operational Workflow</span>
-          <h2 className="section-title">Simple, Transparent Logistics in 4 Steps</h2>
-          <p className="section-desc">
-            From initial consignment booking to automated proof of delivery, our digital pipeline
-            eliminates paperwork, manual check-calls, and billing disputes.
-          </p>
-        </div>
-
-        <div className="steps-grid">
-          <div className="step-card">
-            <div className="step-badge">1</div>
-            <h3 className="step-title">Specify Route & Cargo</h3>
-            <p className="step-desc">
-              Enter origin, destination, cargo classification, and weight. Our routing engine
-              calculates precise rates and estimated transit times.
-            </p>
-          </div>
-
-          <div className="step-card">
-            <div className="step-badge">2</div>
-            <h3 className="step-title">Automated Fleet Dispatch</h3>
-            <p className="step-desc">
-              System allocates certified vehicles and background-verified drivers. Driver receives
-              route instructions on the ChaseHorse mobile app.
-            </p>
-          </div>
-
-          <div className="step-card">
-            <div className="step-badge">3</div>
-            <h3 className="step-title">Real-Time Milestone Transit</h3>
-            <p className="step-desc">
-              Consignors and recipients monitor checkpoint arrivals, departure alerts, and
-              geofenced timestamps on the tracking portal.
-            </p>
-          </div>
-
-          <div className="step-card">
-            <div className="step-badge">4</div>
-            <h3 className="step-title">Verified ePOD & Settlement</h3>
-            <p className="step-desc">
-              Digital proof of delivery with photo evidence and consignee confirmation triggers
-              instant ledger settlement and invoice generation.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="landing-section landing-section--alt" id="about">
-        <div className="landing-hero__inner" style={{ alignItems: 'center' }}>
-          <div>
-            <span className="section-label">About ChaseHorse</span>
-            <h2 className="section-title">Built for Enterprise Reliability and Speed</h2>
-            <p className="section-desc" style={{ marginBottom: '1.5rem' }}>
-              ChaseHorse is engineered as an enterprise-grade operating system for commerce, logistics,
-              and workforce management. Powered by modern PostgreSQL with Row-Level Security, Spring Boot
-              REST microservices, and React application architectures, we deliver 99.9% operational
-              uptime across complex supply chains.
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.5rem' }}>
-              <div style={{ padding: '1rem', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text)' }}>Zero Data Compromise</h4>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                  Granular 7-role RBAC ensuring data isolation between consignors, drivers, and partners.
-                </p>
-              </div>
-              <div style={{ padding: '1rem', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text)' }}>Continuous Auditability</h4>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                  Immutable audit event stream logging every booking change, status transition, and approval.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ padding: '2rem', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text)', fontSize: '1.25rem' }}>Operating Across Regional Hubs</h3>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <MapPin size={18} color="var(--primary-blue)" />
-                <span><strong>Bangalore Hub:</strong> Central Logistics Center, Whitefield Corridor</span>
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <MapPin size={18} color="var(--primary-blue)" />
-                <span><strong>Hyderabad Hub:</strong> HITEC City Dispatch & Outer Ring Road Depot</span>
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <MapPin size={18} color="var(--primary-blue)" />
-                <span><strong>Vijayawada Hub:</strong> Benz Circle Regional Terminal & Industrial Belt</span>
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <MapPin size={18} color="var(--primary-blue)" />
-                <span><strong>Chennai Hub:</strong> Guindy Industrial Park & Port Transit Link</span>
-              </li>
+            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#94a3b8', lineHeight: 1.6 }}>
+              <li>Full platform configuration and audit logs</li>
+              <li>Assigns roles: Manager vs On-Field Worker</li>
+              <li>Approves or revokes managerial credentials</li>
+              <li>Manages checklist templates and system policies</li>
             </ul>
           </div>
-        </div>
-      </section>
 
-      {/* Contact Section */}
-      <section className="landing-section" id="contact">
-        <div className="landing-section__header">
-          <span className="section-label">Get in Touch</span>
-          <h2 className="section-title">Connect with Our Logistics Solutions Team</h2>
-          <p className="section-desc">
-            Have questions about enterprise fleet leasing, custom corridor contracts, or partner
-            onboarding? Our dispatch and engineering desks are ready to assist.
-          </p>
-        </div>
-
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-          <div style={{ padding: '2rem', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text)', fontSize: '1.125rem' }}>Direct Inquiries</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.9375rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Phone size={18} color="var(--primary-blue)" />
-                <span>+91 80 4920 0000 (Dispatch Line)</span>
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            borderRadius: '14px',
+            padding: '1.5rem',
+            border: '1px solid var(--color-border, #1e293b)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>
+                <ShieldCheck size={20} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Mail size={18} color="var(--primary-blue)" />
-                <span>enterprise@chasehorse.com</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Clock size={18} color="var(--primary-blue)" />
-                <span>24/7 Fleet Control Room Support</span>
-              </div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Operations Manager</h3>
             </div>
+            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#94a3b8', lineHeight: 1.6 }}>
+              <li>Approves on-field worker registrations</li>
+              <li>Operates the task exception review queue</li>
+              <li>Reviews AI verification results and evidence photos</li>
+              <li>Approves completion, requests rework, or rejects</li>
+            </ul>
           </div>
 
-          <div style={{ padding: '2rem', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text)', fontSize: '1.125rem' }}>Ready to Deploy?</h3>
-            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              Register for an enterprise account or log in to manage your bookings, assigned tasks, and fleet operations.
-            </p>
-            <Link to="/login" className="btn btn--primary btn--md" style={{ width: '100%', justifyContent: 'center' }}>
-              Sign In to ChaseHorse
-            </Link>
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            borderRadius: '14px',
+            padding: '1.5rem',
+            border: '1px solid var(--color-border, #1e293b)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
+                <HardHat size={20} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>On-Field Worker</h3>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#94a3b8', lineHeight: 1.6 }}>
+              <li>Self-registers (starts in Pending Approval state)</li>
+              <li>Discovers nearby tasks with live device GPS</li>
+              <li>Executes mandatory checklist activities</li>
+              <li>Uploads geo-tagged photos and tracks wallet balance</li>
+            </ul>
+          </div>
+
+          <div style={{
+            background: 'var(--color-surface, #131d31)',
+            borderRadius: '14px',
+            padding: '1.5rem',
+            border: '1px solid var(--color-border, #1e293b)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(234, 179, 8, 0.15)', color: '#facc15' }}>
+                <Building2 size={20} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Business Customer</h3>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#94a3b8', lineHeight: 1.6 }}>
+              <li>Instant registration and dashboard access</li>
+              <li>Creates pan-India field audit and inspection tasks</li>
+              <li>Tracks live execution progress in real-time</li>
+              <li>Inspects verified photographic evidence deliverables</li>
+            </ul>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="landing-footer">
-        <div className="landing-footer__inner">
-          <div>
-            <div className="landing-brand" style={{ marginBottom: '1rem' }}>
-              <div className="landing-brand__logo">
-                <Truck size={18} />
-              </div>
-              <span>CHASEHORSE</span>
-            </div>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '320px' }}>
-              Next-generation enterprise logistics, transportation orchestration, and field workforce management platform.
-            </p>
+      <footer style={{
+        padding: '3rem 1.5rem 2rem 1.5rem',
+        borderTop: '1px solid var(--color-border, #1e293b)',
+        background: 'var(--color-surface-sunken, #080d19)',
+        textAlign: 'center',
+        fontSize: '0.875rem',
+        color: '#64748b',
+      }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+          <p style={{ margin: '0 0 1rem 0' }}>
+            ChaseHorse Field Task & Employee Operations Platform • Built on Spring Boot, PostgreSQL, and Supabase Auth.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', fontSize: '0.8125rem' }}>
+            <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none' }}>Login</Link>
+            <Link to="/register/employee" style={{ color: '#94a3b8', textDecoration: 'none' }}>Worker Registration</Link>
+            <Link to="/register/customer" style={{ color: '#94a3b8', textDecoration: 'none' }}>Customer Registration</Link>
           </div>
-
-          <div>
-            <h4 className="footer-col-title">Platform</h4>
-            <ul className="footer-links">
-              <li><Link to="/bookings/new" className="footer-link">Book Transport</Link></li>
-              <li><a href="#tracking" className="footer-link">Track Shipment</a></li>
-              <li><a href="#truck-plans" className="footer-link">Truck Plans</a></li>
-              <li><Link to="/login" className="footer-link">Enterprise Console</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="footer-col-title">Operations</h4>
-            <ul className="footer-links">
-              <li><Link to="/login" className="footer-link">Employee Portal</Link></li>
-              <li><Link to="/login" className="footer-link">Partner Fleet</Link></li>
-              <li><Link to="/login" className="footer-link">Customer Dashboard</Link></li>
-              <li><Link to="/login" className="footer-link">HSE Checklists</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="footer-col-title">Company</h4>
-            <ul className="footer-links">
-              <li><a href="#about" className="footer-link">About Us</a></li>
-              <li><a href="#services" className="footer-link">Capabilities</a></li>
-              <li><a href="#contact" className="footer-link">Contact Support</a></li>
-              <li><span className="footer-link">Terms & Privacy</span></li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="landing-footer__bottom">
-          <span>&copy; {new Date().getFullYear()} ChaseHorse Logistics Technologies Pvt. Ltd. All rights reserved.</span>
-          <span>Verified Supabase Cloud & Spring Boot Engine</span>
         </div>
       </footer>
     </div>

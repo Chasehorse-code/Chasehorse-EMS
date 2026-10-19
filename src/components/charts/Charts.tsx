@@ -76,3 +76,91 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
     </figure>
   );
 }
+
+export interface DonutSegment {
+  label: string;
+  value: number;
+  color: string;
+}
+
+export function DonutChart({
+  data,
+  total,
+  centerLabel = 'Total Tasks',
+  size = 190,
+  strokeWidth = 24,
+}: {
+  data: DonutSegment[];
+  total: number;
+  centerLabel?: string;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const safeTotal = total > 0 ? total : 1;
+
+  let accumulated = 0;
+  const segments = data.map((d) => {
+    const fraction = d.value / safeTotal;
+    const strokeDasharray = `${fraction * circumference} ${circumference}`;
+    const strokeDashoffset = -accumulated * circumference;
+    accumulated += fraction;
+    return { ...d, strokeDasharray, strokeDashoffset };
+  });
+
+  return (
+    <div style={{ position: 'relative', width: size, height: size, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} role="img" aria-label={`Task distribution donut chart. Total: ${total}`}>
+        {/* Background track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="var(--color-border, rgba(255, 255, 255, 0.08))"
+          strokeWidth={strokeWidth}
+        />
+        {/* Segments */}
+        {total > 0 &&
+          segments.map((seg, i) =>
+            seg.value > 0 ? (
+              <circle
+                key={i}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={seg.strokeDasharray}
+                strokeDashoffset={seg.strokeDashoffset}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease' }}
+              />
+            ) : null,
+          )}
+      </svg>
+      {/* Center Label */}
+      <div
+        style={{
+          position: 'absolute',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          pointerEvents: 'none',
+        }}
+      >
+        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-text, #f8fafc)', lineHeight: 1.1 }}>
+          {total}
+        </span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted, #94a3b8)', marginTop: '2px' }}>
+          {centerLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+

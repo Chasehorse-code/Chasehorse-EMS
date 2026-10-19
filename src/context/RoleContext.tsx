@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { Role } from '@/types';
 import { ROLES, roleCapabilities, type Capability } from '@/config/access';
 import { useAuth } from './AuthContext';
@@ -25,55 +25,61 @@ function readStoredRole(): Role {
 }
 
 const actorNames: Record<Role, string> = {
-  admin: 'Admin Console',
+  admin: 'Platform Admin',
+  operations_manager: 'Operations Manager',
+  employee: 'On-Field Worker',
+  customer: 'Customer Representative',
   manager: 'Operations Manager',
-  operations: 'Dispatch Operations',
-  employee: 'Field Employee',
-  customer: 'Enterprise Customer',
-  partner: 'Logistics Fleet Partner',
-  field_worker: 'Field Officer',
+  operations: 'Operations Manager',
+  field_worker: 'On-Field Worker',
 };
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  const [role, setRoleState] = useState<Role>(readStoredRole);
+  const [devRole, setDevRoleState] = useState<Role>(readStoredRole);
 
-  // If user signs in with assigned roles from backend, sync active role
-  useEffect(() => {
-    if (auth.profile?.roles && auth.profile.roles.length > 0) {
-      const primaryRole = auth.profile.roles[0].toLowerCase() as Role;
-      if (ROLES.includes(primaryRole)) {
-        setRoleState(primaryRole);
-      }
-    }
-  }, [auth.profile]);
+  // Derive authenticated role strictly from backend session
+  const authenticatedRole = useMemo<Role | null>(() => {
+    if (!auth.user) return null;
+    const r = auth.profile?.roles?.[0]?.toLowerCase();
+    if (r && (ROLES as string[]).includes(r)) return r as Role;
+    if (auth.profile?.roles?.some((role) => role.toUpperCase() === 'CUSTOMER')) return 'customer';
+    if (auth.profile?.roles?.some((role) => role.toUpperCase() === 'EMPLOYEE')) return 'employee';
+    return null;
+  }, [auth.user, auth.profile]);
+
+  // When authenticated, effective role is locked to the backend identity
+  const effectiveRole = authenticatedRole || devRole;
 
   const setRole = useCallback((next: Role) => {
-    setRoleState(next);
+    if (authenticatedRole) {
+      console.warn('[Security] Cannot switch roles while authenticated with a verified session.');
+      return;
+    }
+    setDevRoleState(next);
     try {
       window.sessionStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [authenticatedRole]);
 
   const currentActorName = useMemo(() => {
     if (auth.profile?.displayName) return auth.profile.displayName;
     if (auth.user?.email) return auth.user.email.split('@')[0];
-    return actorNames[role] || 'ChaseHorse User';
-  }, [auth.profile, auth.user, role]);
+    return actorNames[effectiveRole] || 'ChaseHorse User';
+  }, [auth.profile, auth.user, effectiveRole]);
 
   const value = useMemo<RoleContextValue>(
     () => ({
-      role,
+      role: effectiveRole,
       setRole,
-      can: (capability) => roleCapabilities[role]?.includes(capability) ?? false,
-      customerId: role === 'customer' ? auth.profile?.id : undefined,
+      can: (capability) => roleCapabilities[effectiveRole]?.includes(capability) ?? false,
+      customerId: effectiveRole === 'customer' ? (auth.profile?.id || 'cust-apex') : undefined,
       actorName: currentActorName,
     }),
-    [role, setRole, auth.profile, currentActorName],
+    [effectiveRole, setRole, auth.profile?.id, currentActorName],
   );
-
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
 }

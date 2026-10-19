@@ -10,10 +10,16 @@ import { Badge } from '@/components/ui/Badge';
 import { BarList, TrendChart } from '@/components/charts/Charts';
 import { formatDate } from '@/utils/format';
 import { priorityLabel, taskStatusLabel, taskStatusOrder } from '@/utils/labels';
+import { CustomerDashboardPage } from '@/pages/CustomerDashboardPage';
 
 export function OverviewPage() {
   const { role, customerId, can } = useRole();
   const isCustomer = role === 'customer';
+
+  if (isCustomer) {
+    return <CustomerDashboardPage />;
+  }
+
   const stats = useAsync(() => api.getDashboardStats({ customerId }), [customerId]);
   const tasks = useAsync(() => api.listTasks({ customerId }), [customerId]);
   const evidence = useAsync(() => api.listEvidence({ customerId }), [customerId]);

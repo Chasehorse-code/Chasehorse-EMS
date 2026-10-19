@@ -1,0 +1,258 @@
+CHASEHORSE
+Field Task & Employee Operations Platform
+ERP Implementation Blueprint
+Requirements • Workflow • Architecture • Data Model • Security • Delivery Plan
+Document status
+Version
+Primary platforms
+Initial requirements blueprint — task fields to be finalized
+1.0
+Android, iOS and Web
+Prepared from the project requirements discussed
+1. Executive Summary
+ChaseHorse is a pan-India employee management and field-task execution platform. Customers and authorized administrators create field-work tasks. Eligible employees discover nearby tasks, accept or reject them, travel to the task location, complete the required work and submit photographic evidence. AI assists with evidence verification, while an Operations Manager reviews exceptions and approves completion. Once the required approval conditions are met, the task reward is credited to the employee’s in-app wallet ledger.
+The initial release will focus on reliable task workflows, location-aware discovery, evidence capture, approval controls and a trustworthy wallet ledger. Task fields and checklist templates will remain configurable until the business rules are finalized.
+2. Goals and Scope
+Primary goals
+Manage employees, customers, administrators and Operations Managers through a role-based platform.
+Support field tasks across India and show eligible tasks near an employee’s current location.
+Require a task-specific checklist so employees can confirm that every required activity is completed.
+Capture task evidence through the app, preserving original files and recording relevant metadata.
+Use AI to assist with evidence checks without treating AI output as unquestionable proof.
+Give Operations Managers manual review and approval controls.
+Credit rewards safely through a ledger after the configured approval conditions are satisfied.
+Deliver a polished, accessible and responsive mobile experience plus a web operations dashboard.
+Initial scope
+Included
+Not assumed for version one
+Employee registration and approval
+Payroll processing
+Task creation, assignment and lifecycle
+Full accounting/ERP suite unrelated to field tasks
+Task checklist and evidence uploads
+Automatic payout to a bank without payout-provider decisions
+AI-assisted evidence verification
+Unsupervised AI approval for every task
+Manager approval and wallet ledger
+Unconfirmed third-party integrations
+3. User Roles and Permissions
+Role
+Main responsibilities
+Access rules
+Platform / Company Admin
+Configure the company, users, roles, task rules and system settings; approve or assign manager access.
+Administrative actions must be permission-checked and audited.
+Operations Manager
+Review tasks, employees, AI results, evidence, exceptions and task completion; approve or reject work.
+Limited to assigned company/region and authorized workflows.
+Employee
+Register, complete profile, discover nearby tasks, accept/reject, follow checklist, submit evidence and view wallet history.
+May access own profile, eligible tasks, assigned work and own wallet.
+Customer
+Create tasks where authorized, view task progress and access permitted completion information.
+May access only their own tasks and related records.
+Employees may register themselves, but their accounts must remain pending until approved. Manager accounts and manager privileges must be granted by an administrator; users must not be able to self-promote. A shared login entry point can route each authenticated user to the correct dashboard based on account status and permissions.
+4. End-to-End Task Workflow
+Task creation: 
+An authorized customer or administrator creates a task with its required fields, location, reward and checklist/template.
+Eligibility and discovery: 
+The backend returns open tasks that match the employee’s eligibility and configured geographic radius.
+Accept or reject: 
+The employee accepts or rejects the task. Acceptance is atomic so the same exclusive task cannot be assigned twice.
+Travel and execution: 
+The employee navigates to the task location and completes the work and checklist items.
+Evidence capture: 
+The employee captures required photos in the app and submits them with task context and metadata.
+Automated checks: 
+The system checks required evidence, metadata, location consistency and likely duplicate content; AI returns a result, confidence and reasons.
+Manager review: 
+The Operations Manager reviews evidence and AI flags, then approves, rejects or requests rework with a reason.
+Reward credit: 
+After all configured approval conditions pass, the backend records one reward credit in the employee’s wallet ledger.
+Closure and audit: 
+The task is closed and its status history, decisions, evidence references and ledger reference remain auditable.
+5. Task Checklist Requirements
+Each task should support a checklist of required activities. The checklist may be selected from a reusable template or defined for a specific task. Employees should be able to see progress (for example, 3 of 5 complete), and required items must be completed before final submission unless an authorized exception is recorded.
+Checklist capability
+Requirement
+Checklist template
+Reusable checklist templates for common task types; version templates so changes do not silently alter active tasks.
+Checklist items
+Each item has a label/instruction, required/optional flag, order, and optionally an evidence requirement.
+Completion state
+Track incomplete, complete and not-applicable states; require a reason and permission for not-applicable items.
+Evidence per item
+Optionally require a photo or note for a specific checklist item.
+Submission validation
+Backend verifies all required checklist items before allowing task submission.
+Review
+Manager can see checklist results and evidence together; rejected items include a reason for rework.
+Audit history
+Record who changed an item and when; preserve the submitted checklist snapshot.
+Example checklist (illustrative only; the actual checklist depends on task type):
+☐ Confirm arrival at the correct task location.
+☐ Inspect the assigned work area or item.
+☐ Complete the specified field activity.
+☐ Capture all required evidence photos.
+☐ Verify the photos are clear and relevant.
+☐ Confirm the checklist is complete before submission.
+6. Task Fields — To Be Finalized
+The final task parameters will be agreed with the business before the database/API contract is locked. Candidate fields include:
+Field group
+Candidate fields
+Identity
+Task ID, task name, description, task type, priority, status.
+Location
+Address, city, state, postal code, latitude, longitude, allowed completion radius.
+Reward
+Reward amount, currency, reward conditions, approval/payment status.
+Scheduling
+Created time, available-from time, deadline, expected duration.
+Assignment
+Eligible employee/skill criteria, assigned employee, acceptance/rejection details.
+Checklist
+Checklist template/version, required items, evidence requirements.
+Evidence and verification
+Required photo count/type, AI verification policy, metadata and review status.
+Governance
+Created by, company/customer reference, approval rules, cancellation and rework policy.
+7. Evidence, Location and AI Verification
+Use the in-app camera for required task evidence and upload files to private object storage.
+Preserve the original image; create a separate stamped presentation copy if the UI needs a visible timestamp, location and task reference.
+Store server upload time, uploader, task ID, storage path, file hash and available capture/GPS metadata.
+Compare reported coordinates with the task coordinates and allowed radius; consider GPS accuracy and flag suspicious or missing location data.
+Detect likely duplicate images and check that the image appears relevant to the task and required checklist item.
+AI output should include a result, confidence, reason codes and model/version metadata.
+Low-confidence, mismatched or high-value submissions must go to manual review.
+Do not rely on an image overlay alone as proof of authenticity; timestamps, EXIF data and GPS can be manipulated.
+Define evidence retention, access and deletion rules, and obtain appropriate user consent for location/camera access.
+8. Wallet and Reward Controls
+Use an immutable wallet ledger with credit, debit, reversal and adjustment entries.
+Create a task reward credit only after the required task and manager approval conditions pass.
+Use a database transaction and idempotency key to prevent duplicate credits when requests are retried.
+Link every wallet entry to the originating task and approval record.
+Keep task reward approval separate from any later withdrawal or payout process.
+Reconcile ledger entries and payout records; require additional permissions for manual adjustments.
+Never trust reward amounts submitted by the mobile app; calculate and validate them on the server.
+9. Proposed Technical Architecture
+Layer
+Technology / responsibility
+Employee and customer mobile app
+React Native + TypeScript for Android and iOS.
+Admin and Operations web portal
+React + TypeScript responsive web dashboard.
+Backend
+Java + Spring Boot REST APIs; business rules, permissions, task lifecycle, AI orchestration and wallet operations.
+Database
+Supabase PostgreSQL; relational data, constraints, transactions and migrations.
+Evidence storage
+Private Supabase Storage buckets or equivalent private object storage.
+Authentication
+Login using ID/email and password followed by email OTP; short-lived sessions, rate limits and revocation.
+Location queries
+PostgreSQL geospatial capabilities such as PostGIS, if enabled and supported by the deployment.
+Documentation and delivery
+OpenAPI/Swagger, automated tests, Docker and CI/CD.
+Recommended initial backend structure: a modular monolith rather than microservices. Suggested modules are auth, users, employees, tasks, checklists, assignments, evidence, AI verification, approvals, wallet, notifications, reporting and integrations. Modules can be separated later if scale and operational needs justify it.
+10. High-Level Database Entities
+Area
+Core tables / entities
+Identity
+users, employees, roles, permissions, user_roles, account_approvals
+Tasks
+tasks, task_assignments, task_status_history, task_checklist_templates, checklist_template_versions, task_checklist_items, task_checklist_responses
+Evidence
+task_evidence, evidence_metadata, ai_verification_results
+Approvals
+approval_requests, approval_steps, approval_decisions
+Wallet
+wallet_accounts, wallet_ledger_entries, payout_requests
+Operations
+notifications, audit_logs, idempotency_keys, integration_jobs
+Use UUID identifiers, foreign keys, indexes, constraints and database migrations. Tenant/company identifiers should be added where required by the final company model. Sensitive data access must be enforced by the backend and, where appropriate, database row-level security.
+11. API Modules — Initial Contract
+Module
+Example API routes
+Authentication
+POST /api/v1/auth/login; POST /api/v1/auth/verify-otp; POST /api/v1/auth/refresh; POST /api/v1/auth/logout
+Registration and approvals
+POST /api/v1/registrations; GET /api/v1/approvals/accounts; POST /api/v1/approvals/accounts/{id}/decision
+Tasks
+POST /api/v1/tasks; GET /api/v1/tasks/nearby; GET /api/v1/tasks/{id}; POST /api/v1/tasks/{id}/accept; POST /api/v1/tasks/{id}/reject
+Checklist
+GET /api/v1/tasks/{id}/checklist; PUT /api/v1/tasks/{id}/checklist-items/{itemId}; POST /api/v1/tasks/{id}/submit
+Evidence and AI
+POST /api/v1/tasks/{id}/evidence-upload; POST /api/v1/tasks/{id}/evidence; GET /api/v1/tasks/{id}/verification
+Manager review
+GET /api/v1/manager/review-queue; POST /api/v1/tasks/{id}/approve; POST /api/v1/tasks/{id}/request-rework
+Wallet
+GET /api/v1/wallet; GET /api/v1/wallet/transactions; GET /api/v1/payout-requests
+Routes are illustrative and will be refined with request/response DTOs, pagination, error codes and authorization rules. Sensitive operations must be authenticated, permission-checked and auditable.
+12. Security and Privacy Model
+Apply role-based and record-level authorization on every protected API; do not rely on hiding buttons in the UI.
+Ensure employees and customers can only access records they are permitted to see.
+Keep database service-role credentials and AI/provider secrets on the server, never in mobile/web client bundles.
+Use HTTPS, secure token storage, short-lived access tokens, refresh-token rotation, rate limiting and OTP attempt limits.
+Use private evidence storage with short-lived signed URLs and access checks.
+Record administrative changes, task decisions, approval outcomes and wallet events in audit logs.
+Validate all task state transitions and checklist requirements on the backend.
+Limit location collection to relevant workflows and define retention/access policies.
+Test cross-user and cross-company access, replay/retry behavior, token expiry, file access and concurrent task acceptance.
+13. UI/UX Direction
+The product should feel like a premium field-operations platform rather than a generic ERP template: clean layouts, a clear information hierarchy, deep navy typography, restrained blue accents, generous spacing, readable status chips, rounded cards and subtle animations. Prioritize fast one-handed use for field employees.
+Experience
+Key screens
+Employee mobile
+Login/OTP, account pending, home/nearby tasks, map/list toggle, task detail, checklist, active task, camera/evidence, submission status, wallet and profile.
+Operations manager web
+Overview dashboard, review queue, evidence viewer, AI result/reasons, task/employee status, approval/rework controls and reward review.
+Admin web/mobile
+User and manager approvals, roles/permissions, task configuration, audit history and high-level reporting.
+Customer experience
+Task creation, task status, task history and permitted completion/evidence view.
+14. Phased Implementation Plan
+Phase
+Deliverables
+Exit criteria
+1. Foundation
+Repository, environments, schema migrations, API standards, authentication and roles.
+Login/OTP and protected endpoints work; pending users cannot perform paid tasks.
+2. Task engine
+Task creation, configurable fields, task lifecycle, nearby discovery and accept/reject.
+Task eligibility and concurrent acceptance tests pass.
+3. Checklist and field work
+Checklist templates, progress, required items, location checks and evidence uploads.
+Incomplete required checklists cannot be submitted.
+4. AI verification
+Evidence checks, duplicate detection, confidence/reason codes and review queue.
+AI uncertainty and failures route safely to human review.
+5. Manager approvals and wallet
+Approve/rework flow, immutable ledger and idempotent reward credit.
+One eligible task can generate at most one reward credit.
+6. Dashboards and notifications
+Employee, manager, admin and customer views; notifications and reporting.
+Role-specific workflows are tested end to end.
+7. Release readiness
+Security/performance testing, production deployment, privacy documents and store assets.
+Release checklist completed and app submitted for store review.
+Schedule depends on team size, finalized task rules, AI service selection, integration access and payout requirements. Store approval cannot be guaranteed; release must satisfy the applicable Google Play and Apple App Store policies.
+15. Open Decisions Before Final Schema
+Final task fields and whether fields vary by task type.
+Checklist templates, mandatory items and evidence requirements per item.
+Task allocation rules: radius, eligibility, first-accept-wins versus manager assignment, and reassignment.
+Location rules: required radius, GPS accuracy threshold and handling of location permission denial.
+AI verification provider, image criteria, confidence thresholds and escalation policy.
+Manager approval rules, rejection reasons and rework limits.
+Wallet definition: internal reward ledger only versus withdrawable funds; payout provider and compliance requirements.
+Customer task creation permissions, task cancellation rules and dispute process.
+Evidence retention, privacy policy and access to employee location history.
+Whether the platform serves one company initially or multiple companies/tenants.
+16. First Development Milestone
+☐ Create the Git repository and development environments.
+☐ Create the first database migration for users, roles, employees, account approvals and audit logs.
+☐ Implement login, email OTP verification and account-status routing.
+☐ Build the mobile login/OTP screens and the initial web admin shell.
+☐ Add automated tests for role permissions and unauthorized access.
+☐ Demonstrate an employee registration moving from pending to approved and then reaching the employee dashboard.
+Conclusion
+ChaseHorse should be implemented around a controlled, auditable field-task lifecycle. The checklist is a core part of that lifecycle—not a cosmetic UI element—and must be enforced by the backend. AI can accelerate evidence review, but manager controls, location checks, secure evidence storage and an idempotent wallet ledger are essential for trustworthy reward processing. The next step is to confirm the task fields and checklist rules, then turn this blueprint into database migrations, API contracts and working screens.

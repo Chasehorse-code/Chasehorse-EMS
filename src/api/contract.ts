@@ -6,17 +6,13 @@ import type {
   DashboardStats,
   Employee,
   EmployeeApprovalStatus,
+  EmployeeSubRole,
   Evidence,
   ManagerDecisionStatus,
   NewTaskInput,
   Task,
   WalletAccount,
   WalletTransaction,
-  TmsVehicle,
-  TmsTransportPlan,
-  TmsShipment,
-  CreateShipmentInput,
-  TmsTrackingDetails,
 } from '@/types';
 
 /**
@@ -32,16 +28,35 @@ export interface ChaseHorseApi {
   listCustomers(): Promise<Customer[]>;
 
   listTasks(scope?: { customerId?: string }): Promise<Task[]>;
+  listNearbyTasks(lat: number, lng: number, radiusKm?: number): Promise<Task[]>;
   createTask(input: NewTaskInput): Promise<Task>;
   assignTask(taskId: string, employeeId: string): Promise<Task>;
+  acceptTask(taskId: string): Promise<Task>;
 
   listEmployees(): Promise<Employee[]>;
-  setEmployeeApproval(employeeId: string, status: EmployeeApprovalStatus): Promise<Employee>;
+  setEmployeeApproval(
+    employeeId: string,
+    status: EmployeeApprovalStatus,
+    subRole?: EmployeeSubRole,
+  ): Promise<Employee>;
 
   listChecklists(): Promise<ChecklistTemplate[]>;
   saveChecklist(template: ChecklistTemplate): Promise<ChecklistTemplate>;
 
   listEvidence(scope?: { customerId?: string }): Promise<Evidence[]>;
+  submitEvidence(
+    taskId: string,
+    payload: {
+      photos: Array<{
+        caption: string;
+        url: string;
+        checklistItemId?: string;
+        geotag?: any;
+      }>;
+      checklist: Array<{ itemId: string; label: string; done: boolean }>;
+      aiResult?: any;
+    },
+  ): Promise<Evidence>;
   decideEvidence(
     evidenceId: string,
     status: Exclude<ManagerDecisionStatus, 'pending'>,
@@ -59,12 +74,4 @@ export interface ChaseHorseApi {
 
   listWalletAccounts(): Promise<WalletAccount[]>;
   listTransactions(employeeId: string): Promise<WalletTransaction[]>;
-
-  // TMS & Transport
-  listVehicles(): Promise<TmsVehicle[]>;
-  listShipments(): Promise<TmsShipment[]>;
-  createShipment(input: CreateShipmentInput): Promise<TmsShipment>;
-  getTracking(bookingRef: string): Promise<TmsTrackingDetails>;
-  listTransportPlans(): Promise<TmsTransportPlan[]>;
 }
-

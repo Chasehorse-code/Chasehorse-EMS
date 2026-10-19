@@ -1,17 +1,19 @@
 /**
- * Domain types. These are shaped to map 1:1 onto future Spring Boot DTOs and
- * Supabase PostgreSQL tables (snake_case columns <-> camelCase JSON via Jackson).
- * IDs are strings so they can be UUIDs in the real backend.
+ * Domain types for ChaseHorse Field Task & Employee Operations Platform.
+ * Shaped to map 1:1 onto Spring Boot DTOs and Supabase PostgreSQL tables.
  */
 
 export type Role =
   | 'admin'
-  | 'manager'
-  | 'operations'
+  | 'operations_manager'
   | 'employee'
   | 'customer'
-  | 'partner'
+  // Backward-compatibility aliases:
+  | 'manager'
+  | 'operations'
   | 'field_worker';
+
+export type EmployeeSubRole = 'manager' | 'field_worker';
 
 export interface GeoPoint {
   lat: number;
@@ -19,7 +21,7 @@ export interface GeoPoint {
   area: string;
 }
 
-/* ---------- Employees ---------- */
+/* ---------- Employees (On-field workers & Operations Managers) ---------- */
 
 export type EmployeeApprovalStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 export type Availability = 'available' | 'on_task' | 'offline';
@@ -30,8 +32,9 @@ export interface Employee {
   email: string;
   phone: string;
   region: string;
-  skills: string[];
+  skills?: string[];
   approvalStatus: EmployeeApprovalStatus;
+  subRole?: EmployeeSubRole;
   availability: Availability;
   location: GeoPoint;
   joinedAt: string; // ISO
@@ -100,6 +103,7 @@ export interface Task {
   rewardInr: number;
   assigneeId?: string;
   checklistTemplateId: string;
+  distanceKm?: number;
 }
 
 export interface NewTaskInput {
@@ -114,17 +118,31 @@ export interface NewTaskInput {
   rewardInr: number;
   assigneeId?: string;
   checklistTemplateId: string;
+  locationLat?: number;
+  locationLng?: number;
 }
 
-/* ---------- Evidence & verification ---------- */
+/* ---------- Geotag & Evidence Metadata ---------- */
+
+export interface GeotagMetadata {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+  address?: string;
+  timestamp: string;
+  taskId?: string;
+  employeeName?: string;
+  source: 'in_app_camera' | 'manual_upload';
+}
 
 export interface EvidencePhoto {
   id: string;
   caption: string;
   capturedAt: string;
-  /** Used only to tint the generated placeholder image. Real backend: storage URL. */
-  hue: number;
+  url?: string;
+  hue?: number;
   checklistItemId?: string;
+  geotag?: GeotagMetadata;
 }
 
 export interface ChecklistResult {
@@ -145,16 +163,16 @@ export interface AiCheck {
   detail: string;
 }
 
-/**
- * Sample AI output. In this prototype no model runs; these records are static
- * demo data. They are advisory only and never change approval state.
- */
 export interface AiVerification {
   status: AiVerificationStatus;
   confidence: number | null; // 0-1
   summary: string;
   checks: AiCheck[];
   runAt: string | null;
+  model?: string;
+  locationMatch?: boolean;
+  timestampValid?: boolean;
+  contentValid?: boolean;
 }
 
 export type ManagerDecisionStatus = 'pending' | 'approved' | 'rework' | 'rejected';
@@ -177,7 +195,7 @@ export interface Evidence {
   managerDecision: ManagerDecision;
 }
 
-/* ---------- Operations approval queue ---------- */
+/* ---------- Operations Approval Queue ---------- */
 
 export type ApprovalStage = 'awaiting_ops' | 'approved' | 'rejected' | 'escalated';
 
@@ -231,76 +249,3 @@ export interface DashboardStats {
   byStatus: Record<TaskStatus, number>;
   completionTrend: { day: string; completed: number; created: number }[];
 }
-
-/* ---------- Transport Management System (TMS) ---------- */
-
-export type TmsVehicleStatus = 'AVAILABLE' | 'ON_TRIP' | 'MAINTENANCE' | 'INACTIVE';
-export type TmsShipmentStatus = 'CONFIRMED' | 'ASSIGNED' | 'DISPATCHED' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
-
-export interface TmsVehicle {
-  id: string;
-  registrationNumber: string;
-  vehicleType: string;
-  capacityKg: number;
-  make: string;
-  model: string;
-  status: TmsVehicleStatus;
-  assignedDriverId?: string;
-}
-
-export interface TmsTransportPlan {
-  id: string;
-  planName: string;
-  vehicleType: string;
-  maxCapacityKg: number;
-  baseRateInr: number;
-  ratePerKmInr: number;
-  estimatedHours: number;
-  description: string;
-}
-
-export interface TmsShipment {
-  id: string;
-  bookingRef: string;
-  customerId: string;
-  originAddress: string;
-  destinationAddress: string;
-  cargoDescription: string;
-  cargoWeightKg: number;
-  status: TmsShipmentStatus;
-  totalPrice: number;
-  currency?: string;
-  createdAt: string;
-}
-
-export interface CreateShipmentInput {
-  originAddress: string;
-  destinationAddress: string;
-  cargoDescription?: string;
-  cargoWeightKg?: number;
-  totalPrice?: number;
-  transportPlanId?: string;
-}
-
-export interface TmsTrackingEvent {
-  id: string;
-  bookingId: string;
-  eventType: string;
-  locationText: string;
-  notes?: string;
-  recordedAt: string;
-}
-
-export interface TmsTrackingDetails {
-  id: string;
-  bookingRef: string;
-  status: TmsShipmentStatus;
-  originAddress: string;
-  destinationAddress: string;
-  cargoDescription?: string;
-  cargoWeightKg?: number;
-  totalPrice?: number;
-  createdAt: string;
-  events: TmsTrackingEvent[];
-}
-

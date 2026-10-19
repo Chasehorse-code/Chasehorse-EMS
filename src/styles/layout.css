@@ -158,8 +158,8 @@
   align-items: center;
   gap: 14px;
   padding: 10px clamp(16px, 3vw, 32px);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  background: var(--surface);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 
@@ -171,24 +171,18 @@
   display: none;
 }
 
-.role-switch {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.role-switch__label {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 500;
+@media (min-width: 640px) {
+  .user-text-wrap {
+    display: block !important;
+  }
 }
 
 .content {
   flex: 1;
   width: 100%;
-  max-width: var(--content-max);
+  max-width: var(--content-max, 1600px);
   margin: 0 auto;
-  padding: clamp(16px, 3vw, 32px);
+  padding: clamp(16px, 2.5vw, 32px);
   display: block;
 }
 

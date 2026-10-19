@@ -7,10 +7,6 @@ import { AppShell } from '@/layout/AppShell';
 import { NotFound } from '@/pages/AccessDenied';
 import { LandingPage } from '@/pages/LandingPage';
 import { OverviewPage } from '@/pages/OverviewPage';
-import { BookingsPage } from '@/pages/BookingsPage';
-import { NewBookingPage } from '@/pages/NewBookingPage';
-import { TruckPlansPage } from '@/pages/TruckPlansPage';
-import { ShipmentTrackingPage } from '@/pages/ShipmentTrackingPage';
 import { EmployeesPage } from '@/pages/EmployeesPage';
 import { TasksPage } from '@/pages/TasksPage';
 import { CreateTaskPage } from '@/pages/CreateTaskPage';
@@ -19,8 +15,15 @@ import { ChecklistsPage } from '@/pages/ChecklistsPage';
 import { EvidencePage } from '@/pages/EvidencePage';
 import { ApprovalsPage } from '@/pages/ApprovalsPage';
 import { WalletPage } from '@/pages/WalletPage';
-import { TmsPage } from '@/pages/TmsPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { RegisterEmployeePage } from '@/pages/RegisterEmployeePage';
+import { RegisterCustomerPage } from '@/pages/RegisterCustomerPage';
+import { PendingApprovalPage } from '@/pages/PendingApprovalPage';
+import { CustomerDashboardPage } from '@/pages/CustomerDashboardPage';
+import { CustomerTrackingPage } from '@/pages/CustomerTrackingPage';
+import { CustomerReportsPage } from '@/pages/CustomerReportsPage';
+import { CustomerProfilePage } from '@/pages/CustomerProfilePage';
+import { CustomerSupportPage } from '@/pages/CustomerSupportPage';
 
 export default function App() {
   return (
@@ -30,35 +33,35 @@ export default function App() {
           <ToastProvider>
             <BrowserRouter>
               <Routes>
-                {/* Public Routes */}
+                {/* Public & Auth Routes */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="login" element={<LoginPage />} />
-                <Route path="register" element={<LoginPage />} />
+                <Route path="register" element={<RegisterEmployeePage />} />
+                <Route path="register/employee" element={<RegisterEmployeePage />} />
+                <Route path="register/customer" element={<RegisterCustomerPage />} />
+                <Route path="pending-approval" element={<PendingApprovalPage />} />
 
                 {/* Authenticated Application Shell */}
                 <Route element={<AppShell />}>
+                  {/* Operations & Dashboards */}
                   <Route path="admin/dashboard" element={<OverviewPage />} />
                   <Route path="overview" element={<OverviewPage />} />
-                  <Route path="customer/dashboard" element={<OverviewPage />} />
+                  <Route path="customer/dashboard" element={<CustomerDashboardPage />} />
+                  <Route path="customer/tracking" element={<CustomerTrackingPage />} />
+                  <Route path="customer/reports" element={<CustomerReportsPage />} />
+                  <Route path="customer/profile" element={<CustomerProfilePage />} />
+                  <Route path="customer/support" element={<CustomerSupportPage />} />
+                  <Route path="customer/history" element={<TasksPage />} />
                   <Route path="employee/dashboard" element={<OverviewPage />} />
-                  <Route path="partner/dashboard" element={<OverviewPage />} />
 
-                  {/* Freight & Logistics (TMS) */}
-                  <Route path="bookings" element={<BookingsPage />} />
-                  <Route path="bookings/new" element={<NewBookingPage />} />
-                  <Route path="truck-plans" element={<TruckPlansPage />} />
-                  <Route path="tracking" element={<ShipmentTrackingPage />} />
-                  <Route path="tracking/:reference" element={<ShipmentTrackingPage />} />
-                  <Route path="tms" element={<TmsPage />} />
-
-                  {/* Workforce & Operations */}
-                  <Route path="employees" element={<EmployeesPage />} />
+                  {/* Core Field Task Execution Engine */}
+                  <Route path="nearby" element={<NearbyPage />} />
                   <Route path="tasks" element={<TasksPage />} />
                   <Route path="tasks/new" element={<CreateTaskPage />} />
-                  <Route path="nearby" element={<NearbyPage />} />
                   <Route path="checklists" element={<ChecklistsPage />} />
                   <Route path="evidence" element={<EvidencePage />} />
                   <Route path="approvals" element={<ApprovalsPage />} />
+                  <Route path="employees" element={<EmployeesPage />} />
                   <Route path="wallet" element={<WalletPage />} />
 
                   <Route path="*" element={<NotFound />} />

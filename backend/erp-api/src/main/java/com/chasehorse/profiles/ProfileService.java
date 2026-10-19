@@ -41,7 +41,7 @@ public class ProfileService {
      * Called on every authenticated request to /me to ensure profile exists.
      */
     @Transactional
-    public ProfileView findOrCreate(UUID userId, String email, String displayName) {
+    public ProfileView findOrCreate(UUID userId, String email, String displayName, String phone, String region, String accountType) {
         var existing = jdbc.query("""
             SELECT id, display_name, email, phone, avatar_url, region, account_status, created_at, updated_at
             FROM app_profiles WHERE id = ?
@@ -54,15 +54,37 @@ public class ProfileService {
             userId);
 
         if (existing.isEmpty()) {
+            boolean isCustomer = "CUSTOMER".equalsIgnoreCase(accountType);
+            String initialStatus = isCustomer ? "ACTIVE" : "PENDING";
             jdbc.update("""
-                INSERT INTO app_profiles (id, display_name, email, account_status)
-                VALUES (?, ?, ?, 'PENDING')
-                """, userId, displayName != null ? displayName : email, email);
+                INSERT INTO app_profiles (id, display_name, email, phone, region, account_status)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, userId, displayName != null ? displayName : email, email, phone, region, initialStatus);
+
+            String initialRole = isCustomer ? "CUSTOMER" : "EMPLOYEE";
+            jdbc.update("""
+                INSERT INTO app_role_assignments (user_id, role)
+                VALUES (?, ?)
+                ON CONFLICT (user_id, role) DO NOTHING
+                """, userId, initialRole);
+
             audit.log(userId, "PROFILE_CREATED", "PROFILE", userId,
-                Map.of("email", email != null ? email : ""));
+                Map.of("email", email != null ? email : "", "accountType", accountType != null ? accountType : ""));
+        } else {
+            if ((phone != null && !phone.isBlank()) || (region != null && !region.isBlank())) {
+                jdbc.update("""
+                    UPDATE app_profiles
+                    SET phone = COALESCE(phone, ?), region = COALESCE(region, ?), updated_at = now()
+                    WHERE id = ?
+                    """, phone, region, userId);
+            }
         }
 
         return loadFullProfile(userId);
+    }
+
+    public ProfileView findOrCreate(UUID userId, String email, String displayName) {
+        return findOrCreate(userId, email, displayName, null, null, null);
     }
 
     /** Load the full profile with roles. */
