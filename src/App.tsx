@@ -15,9 +15,6 @@ import { ChecklistsPage } from '@/pages/ChecklistsPage';
 import { EvidencePage } from '@/pages/EvidencePage';
 import { ApprovalsPage } from '@/pages/ApprovalsPage';
 import { WalletPage } from '@/pages/WalletPage';
-import { LoginPage } from '@/pages/LoginPage';
-import { RegisterEmployeePage } from '@/pages/RegisterEmployeePage';
-import { RegisterCustomerPage } from '@/pages/RegisterCustomerPage';
 import { PendingApprovalPage } from '@/pages/PendingApprovalPage';
 import { CustomerDashboardPage } from '@/pages/CustomerDashboardPage';
 import { CustomerTrackingPage } from '@/pages/CustomerTrackingPage';
@@ -33,12 +30,13 @@ export default function App() {
           <ToastProvider>
             <BrowserRouter>
               <Routes>
-                {/* Public & Auth Routes */}
+                {/* Public & Auth Routes (Deep links render LandingPage with matching modal open) */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="login" element={<LoginPage />} />
-                <Route path="register" element={<RegisterEmployeePage />} />
-                <Route path="register/employee" element={<RegisterEmployeePage />} />
-                <Route path="register/customer" element={<RegisterCustomerPage />} />
+                <Route path="login" element={<LandingPage initialAuthView="login" />} />
+                <Route path="register" element={<LandingPage initialAuthView="worker" />} />
+                <Route path="register/worker" element={<LandingPage initialAuthView="worker" />} />
+                <Route path="register/employee" element={<LandingPage initialAuthView="worker" />} />
+                <Route path="register/customer" element={<LandingPage initialAuthView="customer" />} />
                 <Route path="pending-approval" element={<PendingApprovalPage />} />
 
                 {/* Authenticated Application Shell */}
