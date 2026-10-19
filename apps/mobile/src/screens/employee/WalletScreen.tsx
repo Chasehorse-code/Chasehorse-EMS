@@ -10,14 +10,24 @@ import {
 import { colors, spacing, radius } from '../../theme';
 import { Header } from '../../components/ui/Header';
 import { mobileApi } from '../../api/restApi';
+import { useAuth } from '../../context/AuthContext';
 import type { WalletTransaction } from '../../types';
 
 export const WalletScreen: React.FC = () => {
+  const { user } = useAuth();
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setTxns(mobileApi.getWalletTransactions());
-  }, []);
+    if (user?.id) {
+      setLoading(true);
+      mobileApi
+        .getWalletTransactions(user.id)
+        .then((data) => setTxns(data || []))
+        .catch(() => setTxns([]))
+        .finally(() => setLoading(false));
+    }
+  }, [user?.id]);
 
   const completedTotal = txns
     .filter((t) => t.status === 'COMPLETED')

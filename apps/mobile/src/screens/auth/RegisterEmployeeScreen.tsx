@@ -21,26 +21,49 @@ export const RegisterEmployeeScreen: React.FC<RegisterEmployeeScreenProps> = ({ 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [region, setRegion] = useState('Tenali Urban, Andhra Pradesh');
   const [gpsCoordinates, setGpsCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingGps, setLoadingGps] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleExtractGps = () => {
-    setLoadingGps(true);
-    setTimeout(() => {
-      setLoadingGps(false);
-      setGpsCoordinates({ lat: 16.24184, lng: 80.6448 });
-      Alert.alert(
-        'Device Location Verified',
-        'Acquired high-precision device fix:\n16.24184° N, 80.64480° E (±4m)\nRegion: Tenali Urban Cluster',
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      setLoadingGps(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLoadingGps(false);
+          setGpsCoordinates({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          Alert.alert(
+            'Device Location Verified',
+            `Acquired coordinates:\n${pos.coords.latitude.toFixed(5)}° N, ${pos.coords.longitude.toFixed(5)}° E`,
+          );
+        },
+        () => {
+          setLoadingGps(false);
+          Alert.alert('Location Notice', 'Could not obtain hardware GPS fix. Please enable location services.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 },
       );
-    }, 600);
+    } else {
+      Alert.alert('Location Required', 'Device geolocation hardware is unavailable on this platform.');
+    }
   };
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !phone.trim()) {
-      Alert.alert('Required Fields', 'Please fill in full name, email, and mobile phone.');
+    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
+      Alert.alert('Required Fields', 'Please fill in full name, email, mobile phone, and password.');
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Security Requirement', 'Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Password Mismatch', 'Passwords do not match. Please re-enter.');
       return;
     }
 
@@ -52,14 +75,16 @@ export const RegisterEmployeeScreen: React.FC<RegisterEmployeeScreenProps> = ({ 
         phone,
         region,
         subRole: 'on_field',
-        coords: gpsCoordinates || { lat: 16.2418, lng: 80.6448 },
+        coords: gpsCoordinates || { lat: 0, lng: 0 },
+        password,
       });
       Alert.alert(
         'Registration Submitted',
         'Your field employee registration has been submitted and is currently pending Operations Manager approval.',
       );
-    } catch {
-      Alert.alert('Error', 'Failed to register account.');
+      onBackToLogin();
+    } catch (err: any) {
+      Alert.alert('Registration Failed', err.message || 'Failed to register account.');
     } finally {
       setLoading(false);
     }
@@ -109,6 +134,30 @@ export const RegisterEmployeeScreen: React.FC<RegisterEmployeeScreenProps> = ({ 
             onChangeText={setPhone}
             keyboardType="phone-pad"
             placeholder="+91 98480 12345"
+            placeholderTextColor={colors.textLightMuted}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Password (minimum 8 characters) *</Text>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="••••••••••••"
+            placeholderTextColor={colors.textLightMuted}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Confirm Password *</Text>
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            placeholder="••••••••••••"
             placeholderTextColor={colors.textLightMuted}
           />
         </View>

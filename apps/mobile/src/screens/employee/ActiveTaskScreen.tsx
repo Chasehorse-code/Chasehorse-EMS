@@ -80,12 +80,20 @@ export const ActiveTaskScreen: React.FC<ActiveTaskScreenProps> = ({
       return;
     }
 
-    const res = await mobileApi.submitEvidence(task.id, 'Storefront photo with stamped GPS watermark');
-    Alert.alert(
-      'Evidence Submitted for Operations Review',
-      `Gemini AI Verification: ${res.aiResult}\n\nTask bounty of ₹${task.rewardInr} has been staged in your wallet under PENDING APPROVAL. Reward credits once Operations Manager approves.`,
-    );
-    onTaskCompleted();
+    try {
+      await mobileApi.submitEvidence(task.id, {
+        storagePath: `evidence/${task.id}/hud_${Date.now()}.jpg`,
+        fileName: `evidence_${task.id}.jpg`,
+        caption: `GPS Verified (${evidenceCaptured.lat}, ${evidenceCaptured.lng}) at ${evidenceCaptured.timestamp}`,
+      });
+      Alert.alert(
+        'Evidence Submitted for Operations Review',
+        `Task bounty of ₹${task.rewardInr} has been submitted for review. Reward credits once Operations Manager approves.`,
+      );
+      onTaskCompleted();
+    } catch (err: any) {
+      Alert.alert('Submission Error', err.message || 'Failed to submit evidence.');
+    }
   };
 
   return (

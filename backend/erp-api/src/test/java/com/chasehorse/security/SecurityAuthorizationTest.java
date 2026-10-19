@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -207,11 +208,17 @@ class SecurityAuthorizationTest {
         Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
         Mockito.when(roleAuth.hasRole(adminId.toString(), "ADMIN")).thenReturn(true);
 
+        Mockito.when(jdbc.query(contains("account_status FROM app_profiles"), any(RowMapper.class), any()))
+               .thenReturn(List.of("ACTIVE"));
+        Mockito.when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+        Mockito.when(jdbc.update(anyString(), any(), any())).thenReturn(1);
+        Mockito.when(jdbc.update(anyString(), any(), any(), any())).thenReturn(1);
+
         var empView = new EmployeeController.EmployeeView(
             targetEmployeeId, "Worker Name", "worker@field.in", "9999999999",
             "Tenali", "ACTIVE", List.of("FIELD_WORKER"), OffsetDateTime.now()
         );
-        Mockito.when(jdbc.query(anyString(), any(RowMapper.class), eq(targetEmployeeId)))
+        Mockito.when(jdbc.query(contains("roles_csv"), any(RowMapper.class), any()))
                .thenReturn(List.of(empView));
 
         String payload = """
@@ -228,6 +235,51 @@ class SecurityAuthorizationTest {
            .andExpect(status().isOk());
     }
 
+    @Test
+    @DisplayName("Employee cannot perform self-approval or self-escalation")
+    void employeeCannotPerformSelfApproval() throws Exception {
+        UUID actorId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+
+        String payload = """
+            {
+              "status": "ACTIVE",
+              "role": "ADMIN"
+            }
+            """;
+
+        mvc.perform(patch("/api/v1/employees/" + actorId + "/approval")
+                .with(jwt().jwt(builder -> builder.subject(actorId.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Approval rejects nonexistent employee account with 404")
+    void approvalRejectsNonexistentEmployee() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID nonexistentId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+        Mockito.when(roleAuth.hasRole(adminId.toString(), "ADMIN")).thenReturn(true);
+        Mockito.when(jdbc.query(contains("SELECT id, account_status FROM app_profiles"), any(RowMapper.class), eq(nonexistentId)))
+               .thenReturn(Collections.emptyList());
+
+        String payload = """
+            {
+              "status": "ACTIVE"
+            }
+            """;
+
+        mvc.perform(patch("/api/v1/employees/" + nonexistentId + "/approval")
+                .with(jwt().jwt(builder -> builder.subject(adminId.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+           .andExpect(status().isNotFound());
+    }
+
     // -------------------------------------------------------------
     // 6. Cross-Tenant Task & Evidence Isolation (Customer A vs B)
     // -------------------------------------------------------------
@@ -238,7 +290,7 @@ class SecurityAuthorizationTest {
         UUID taskId = UUID.randomUUID();
 
         Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
-        Mockito.when(taskService.getTask(eq(taskId), any(org.springframework.security.oauth2.jwt.Jwt.class)))
+        Mockito.when(taskService.getTask(eq(taskId), any(Jwt.class)))
                .thenThrow(ApiException.forbidden("You do not own this task"));
 
         mvc.perform(get("/api/v1/tasks/" + taskId)
@@ -276,7 +328,6 @@ class SecurityAuthorizationTest {
         UUID employeeId = UUID.randomUUID();
         UUID actorId = UUID.randomUUID();
 
-        // Mock task view (19 fields)
         var mockTask = new TaskService.TaskView(
             taskId, "Audit Task", "desc", "Shelf audit", "OPEN", "NORMAL",
             actorId, null, actorId, null, null, null, "Tenali", "Main Street",
@@ -296,5 +347,277 @@ class SecurityAuthorizationTest {
         );
         assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, ex.getStatus());
         assertTrue(ex.getMessage().contains("Target employee is not active"));
+    }
+
+    // -------------------------------------------------------------
+    // 8. Task Acceptance and Cancellation
+    // -------------------------------------------------------------
+    @Test
+    @DisplayName("Active field worker can accept an OPEN task")
+    void workerCanAcceptOpenTask() throws Exception {
+        UUID workerId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+
+        var mockTask = new TaskService.TaskView(
+            taskId, "Audit Task", "desc", "Shelf audit", "ASSIGNED", "NORMAL",
+            UUID.randomUUID(), null, UUID.randomUUID(), workerId, null, null, "Tenali", "Main Street",
+            OffsetDateTime.now().plusDays(1), BigDecimal.TEN, "INR",
+            OffsetDateTime.now(), OffsetDateTime.now()
+        );
+        Mockito.when(taskService.acceptTask(eq(taskId), any(Jwt.class)))
+               .thenReturn(mockTask);
+
+        mvc.perform(post("/api/v1/tasks/" + taskId + "/accept")
+                .with(jwt().jwt(builder -> builder.subject(workerId.toString()))))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.status").value("ASSIGNED"));
+    }
+
+    @Test
+    @DisplayName("Worker cannot accept non-OPEN or already accepted task")
+    void workerCannotAcceptNonOpenTask() throws Exception {
+        UUID workerId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+        Mockito.when(taskService.acceptTask(eq(taskId), any(Jwt.class)))
+               .thenThrow(ApiException.badRequest("Task is no longer available in OPEN status for acceptance"));
+
+        mvc.perform(post("/api/v1/tasks/" + taskId + "/accept")
+                .with(jwt().jwt(builder -> builder.subject(workerId.toString()))))
+           .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Customer can cancel their own OPEN task")
+    void customerCanCancelOwnOpenTask() throws Exception {
+        UUID customerId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+
+        var mockTask = new TaskService.TaskView(
+            taskId, "Audit Task", "desc", "Shelf audit", "CANCELLED", "NORMAL",
+            customerId, null, customerId, null, null, null, "Tenali", "Main Street",
+            OffsetDateTime.now().plusDays(1), BigDecimal.TEN, "INR",
+            OffsetDateTime.now(), OffsetDateTime.now()
+        );
+        Mockito.when(taskService.cancelTask(eq(taskId), any(Jwt.class)))
+               .thenReturn(mockTask);
+
+        mvc.perform(post("/api/v1/tasks/" + taskId + "/cancel")
+                .with(jwt().jwt(builder -> builder.subject(customerId.toString()))))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.status").value("CANCELLED"));
+    }
+
+    @Test
+    @DisplayName("Customer cannot cancel another customer's task")
+    void customerCannotCancelAnotherCustomersTask() throws Exception {
+        UUID customerA = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+        Mockito.when(taskService.cancelTask(eq(taskId), any(Jwt.class)))
+               .thenThrow(ApiException.forbidden("You do not own this task"));
+
+        mvc.perform(post("/api/v1/tasks/" + taskId + "/cancel")
+                .with(jwt().jwt(builder -> builder.subject(customerA.toString()))))
+           .andExpect(status().isForbidden());
+    }
+
+    // -------------------------------------------------------------
+    // 9. Task State Transitions and Ownership Rules
+    // -------------------------------------------------------------
+    @Test
+    @DisplayName("Customer cannot advance task execution status")
+    void customerCannotAdvanceTaskStatus() throws Exception {
+        UUID customerId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+        Mockito.when(taskService.updateStatus(eq(taskId), eq("IN_PROGRESS"), any(Jwt.class)))
+               .thenThrow(ApiException.forbidden("Customers can only cancel tasks they own, not advance execution status"));
+
+        String payload = """
+            {
+              "status": "IN_PROGRESS"
+            }
+            """;
+
+        mvc.perform(patch("/api/v1/tasks/" + taskId + "/status")
+                .with(jwt().jwt(builder -> builder.subject(customerId.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Assigned worker can advance task to IN_PROGRESS")
+    void assignedWorkerCanAdvanceTask() throws Exception {
+        UUID workerId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+
+        var mockTask = new TaskService.TaskView(
+            taskId, "Audit Task", "desc", "Shelf audit", "IN_PROGRESS", "NORMAL",
+            UUID.randomUUID(), null, UUID.randomUUID(), workerId, null, null, "Tenali", "Main Street",
+            OffsetDateTime.now().plusDays(1), BigDecimal.TEN, "INR",
+            OffsetDateTime.now(), OffsetDateTime.now()
+        );
+        Mockito.when(taskService.updateStatus(eq(taskId), eq("IN_PROGRESS"), any(Jwt.class)))
+               .thenReturn(mockTask);
+
+        String payload = """
+            {
+              "status": "IN_PROGRESS"
+            }
+            """;
+
+        mvc.perform(patch("/api/v1/tasks/" + taskId + "/status")
+                .with(jwt().jwt(builder -> builder.subject(workerId.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    @DisplayName("Worker cannot approve their own task")
+    void workerCannotApproveOwnTask() throws Exception {
+        UUID workerId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+        Mockito.when(taskService.updateStatus(eq(taskId), eq("APPROVED"), any(Jwt.class)))
+               .thenThrow(ApiException.forbidden("Field workers cannot transition tasks to APPROVED"));
+
+        String payload = """
+            {
+              "status": "APPROVED"
+            }
+            """;
+
+        mvc.perform(patch("/api/v1/tasks/" + taskId + "/status")
+                .with(jwt().jwt(builder -> builder.subject(workerId.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Unassigned worker cannot update task status")
+    void unassignedWorkerCannotUpdateTaskStatus() throws Exception {
+        UUID unassignedWorkerId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.hasAny(any(), any())).thenReturn(true);
+        Mockito.when(taskService.updateStatus(eq(taskId), eq("IN_PROGRESS"), any(Jwt.class)))
+               .thenThrow(ApiException.forbidden("You are not assigned to this task"));
+
+        String payload = """
+            {
+              "status": "IN_PROGRESS"
+            }
+            """;
+
+        mvc.perform(patch("/api/v1/tasks/" + taskId + "/status")
+                .with(jwt().jwt(builder -> builder.subject(unassignedWorkerId.toString())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+           .andExpect(status().isForbidden());
+    }
+
+    // -------------------------------------------------------------
+    // 10. TaskService State Machine & Concurrency Direct Unit Tests
+    // -------------------------------------------------------------
+    @Test
+    @DisplayName("TaskService rejects invalid state transition (OPEN to SUBMITTED)")
+    void taskServiceRejectsInvalidTransition() {
+        TaskService service = new TaskService(jdbc, audit, roleAuth);
+        UUID taskId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+
+        var mockTask = new TaskService.TaskView(
+            taskId, "Audit Task", "desc", "Shelf audit", "OPEN", "NORMAL",
+            actorId, null, actorId, null, null, null, "Tenali", "Main Street",
+            OffsetDateTime.now().plusDays(1), BigDecimal.TEN, "INR",
+            OffsetDateTime.now(), OffsetDateTime.now()
+        );
+
+        Mockito.when(jdbc.query(contains("FROM tasks"), any(RowMapper.class), eq(taskId)))
+               .thenReturn(List.of(mockTask));
+
+        Jwt jwt = Mockito.mock(Jwt.class);
+        Mockito.when(jwt.getSubject()).thenReturn(actorId.toString());
+
+        ApiException ex = assertThrows(ApiException.class, () ->
+            service.updateStatus(taskId, "SUBMITTED", jwt)
+        );
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertTrue(ex.getMessage().contains("Invalid state transition"));
+    }
+
+    @Test
+    @DisplayName("TaskService detects concurrent modification on status update")
+    void taskServiceDetectsConcurrentStatusUpdate() {
+        TaskService service = new TaskService(jdbc, audit, roleAuth);
+        UUID taskId = UUID.randomUUID();
+        UUID workerId = UUID.randomUUID();
+
+        var mockTask = new TaskService.TaskView(
+            taskId, "Audit Task", "desc", "Shelf audit", "ASSIGNED", "NORMAL",
+            UUID.randomUUID(), workerId, UUID.randomUUID(), null, null, null, "Tenali", "Main Street",
+            OffsetDateTime.now().plusDays(1), BigDecimal.TEN, "INR",
+            OffsetDateTime.now(), OffsetDateTime.now()
+        );
+
+        Mockito.when(jdbc.query(contains("FROM tasks"), any(RowMapper.class), eq(taskId)))
+               .thenReturn(List.of(mockTask));
+        Mockito.when(roleAuth.getRoles(workerId.toString())).thenReturn(List.of("FIELD_WORKER"));
+        // Concurrent modification -> 0 rows updated
+        Mockito.when(jdbc.update(contains("UPDATE tasks"), eq("IN_PROGRESS"), eq(taskId), eq("ASSIGNED")))
+               .thenReturn(0);
+
+        Jwt jwt = Mockito.mock(Jwt.class);
+        Mockito.when(jwt.getSubject()).thenReturn(workerId.toString());
+
+        ApiException ex = assertThrows(ApiException.class, () ->
+            service.updateStatus(taskId, "IN_PROGRESS", jwt)
+        );
+        assertEquals(org.springframework.http.HttpStatus.CONFLICT, ex.getStatus());
+    }
+
+    @Test
+    @DisplayName("TaskService acceptTask rejects worker if account is not active")
+    void acceptTaskRejectsInactiveWorker() {
+        TaskService service = new TaskService(jdbc, audit, roleAuth);
+        UUID taskId = UUID.randomUUID();
+        UUID workerId = UUID.randomUUID();
+
+        var mockTask = new TaskService.TaskView(
+            taskId, "Audit Task", "desc", "Shelf audit", "OPEN", "NORMAL",
+            UUID.randomUUID(), null, UUID.randomUUID(), null, null, null, "Tenali", "Main Street",
+            OffsetDateTime.now().plusDays(1), BigDecimal.TEN, "INR",
+            OffsetDateTime.now(), OffsetDateTime.now()
+        );
+
+        Mockito.when(jdbc.query(contains("FROM tasks"), any(RowMapper.class), eq(taskId)))
+               .thenReturn(List.of(mockTask));
+        // Worker profile is SUSPENDED
+        Mockito.when(jdbc.query(contains("FROM app_profiles"), any(RowMapper.class), eq(workerId)))
+               .thenReturn(List.of(Map.entry("SUSPENDED", true)));
+
+        Jwt jwt = Mockito.mock(Jwt.class);
+        Mockito.when(jwt.getSubject()).thenReturn(workerId.toString());
+
+        ApiException ex = assertThrows(ApiException.class, () ->
+            service.acceptTask(taskId, jwt)
+        );
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, ex.getStatus());
+        assertTrue(ex.getMessage().contains("Only active field workers"));
     }
 }

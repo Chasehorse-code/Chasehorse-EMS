@@ -13,20 +13,37 @@ import { Header } from '../../components/ui/Header';
 import { mobileApi } from '../../api/restApi';
 
 export const CustomerTrackingScreen: React.FC = () => {
-  const [query, setQuery] = useState('CH20240512001');
-  const [trackingData, setTrackingData] = useState(() => mobileApi.getTrackingInfo('CH20240512001'));
+  const [query, setQuery] = useState('');
+  const [trackingData, setTrackingData] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!query.trim()) {
-      Alert.alert('Required', 'Please enter a consignment tracking ID.');
+      Alert.alert('Required', 'Please enter a consignment tracking reference.');
       return;
     }
-    setTrackingData(mobileApi.getTrackingInfo(query.trim()));
+    setLoading(true);
+    setSearched(true);
+    try {
+      const data = await mobileApi.getTrackingInfo(query.trim());
+      setTrackingData(data);
+    } catch {
+      setTrackingData(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCallDriver = () => {
-    Alert.alert('Calling Logistics Driver', `Dialing ${trackingData.driverPhone} (${trackingData.driverName})...`);
+    if (trackingData?.driverPhone && trackingData.driverPhone !== 'N/A') {
+      Alert.alert('Calling Logistics Driver', `Dialing ${trackingData.driverPhone} (${trackingData.driverName || 'Driver'})...`);
+    } else {
+      Alert.alert('Driver Contact', 'Driver contact information is not currently available for this shipment.');
+    }
   };
+
+  const events = Array.isArray(trackingData?.events) ? trackingData.events : [];
 
   return (
     <View style={styles.container}>
@@ -34,91 +51,97 @@ export const CustomerTrackingScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Search Bar */}
         <View style={styles.searchCard}>
-          <Text style={styles.searchLabel}>Enter Consignment Tracking ID</Text>
+          <Text style={styles.searchLabel}>Enter Consignment Tracking Reference</Text>
           <View style={styles.searchRow}>
             <TextInput
               style={styles.searchInput}
               value={query}
               onChangeText={setQuery}
               autoCapitalize="characters"
-              placeholder="e.g. CH20240512001"
+              placeholder="e.g. TRK-2026-001"
               placeholderTextColor={colors.textLightMuted}
             />
-            <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-              <Text style={styles.searchBtnText}>Track</Text>
+            <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} disabled={loading}>
+              <Text style={styles.searchBtnText}>{loading ? '...' : 'Track'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Consignment Status Card */}
-        <View style={styles.consignmentCard}>
-          <View style={styles.consignmentTopRow}>
-            <Text style={styles.consignmentIdText}>{trackingData.id}</Text>
-            <View style={styles.inTransitChip}>
-              <Text style={styles.inTransitText}>IN TRANSIT</Text>
-            </View>
-          </View>
+        {trackingData ? (
+          <>
+            <View style={styles.consignmentCard}>
+              <View style={styles.consignmentTopRow}>
+                <Text style={styles.consignmentIdText}>{trackingData.bookingRef || trackingData.id}</Text>
+                <View style={styles.inTransitChip}>
+                  <Text style={styles.inTransitText}>{(trackingData.status || 'IN_TRANSIT').toUpperCase()}</Text>
+                </View>
+              </View>
 
-          <View style={styles.routeBox}>
-            <Text style={styles.routePoint}>📍 Origin: {trackingData.origin}</Text>
-            <Text style={styles.routeArrow}>↓</Text>
-            <Text style={styles.routePoint}>🏁 Destination: {trackingData.destination}</Text>
-          </View>
+              <View style={styles.routeBox}>
+                <Text style={styles.routePoint}>📍 Origin: {trackingData.originAddress || 'Origin Site'}</Text>
+                <Text style={styles.routeArrow}>↓</Text>
+                <Text style={styles.routePoint}>🏁 Destination: {trackingData.destinationAddress || 'Destination Site'}</Text>
+              </View>
 
-          <View style={styles.driverSection}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.driverName}>{trackingData.driverName}</Text>
-              <Text style={styles.vehicleText}>Vehicle: {trackingData.vehicleNo}</Text>
-              <Text style={styles.etaText}>ETA: {trackingData.eta}</Text>
-            </View>
-            <TouchableOpacity style={styles.callDriverBtn} onPress={handleCallDriver}>
-              <Text style={styles.callDriverText}>📞 Call Driver</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Milestone Progression Timeline */}
-        <Text style={styles.timelineHeading}>DELIVERY MILESTONES</Text>
-        <View style={styles.timelineCard}>
-          {trackingData.milestones.map((m, idx) => (
-            <View key={idx} style={styles.milestoneRow}>
-              <View style={styles.timelineIndicatorColumn}>
-                <View
-                  style={[
-                    styles.milestoneDot,
-                    m.completed && styles.milestoneDotCompleted,
-                    m.current && styles.milestoneDotCurrent,
-                  ]}
-                >
-                  <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>
-                    {m.completed ? '✓' : idx + 1}
+              <View style={styles.driverSection}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.driverName}>{trackingData.driverName || 'Assigned Driver'}</Text>
+                  <Text style={styles.vehicleText}>Vehicle: {trackingData.vehicleRegistration || trackingData.vehicleType || 'Commercial Bay'}</Text>
+                  <Text style={styles.etaText}>
+                    ETA: {trackingData.estimatedDelivery ? new Date(trackingData.estimatedDelivery).toLocaleString() : 'In Transit'}
                   </Text>
                 </View>
-                {idx < trackingData.milestones.length - 1 && (
-                  <View
-                    style={[
-                      styles.milestoneLine,
-                      m.completed && styles.milestoneLineCompleted,
-                    ]}
-                  />
-                )}
-              </View>
-
-              <View style={styles.milestoneContent}>
-                <Text
-                  style={[
-                    styles.milestoneTitle,
-                    m.current && { color: colors.blueAccent, fontWeight: '700' },
-                  ]}
-                >
-                  {m.title}
-                </Text>
-                <Text style={styles.milestoneLocation}>{m.location}</Text>
-                <Text style={styles.milestoneTime}>{m.time}</Text>
+                <TouchableOpacity style={styles.callDriverBtn} onPress={handleCallDriver}>
+                  <Text style={styles.callDriverText}>📞 Call Driver</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          ))}
-        </View>
+
+            {/* Milestone Progression Timeline */}
+            <Text style={styles.timelineHeading}>DELIVERY MILESTONES</Text>
+            <View style={styles.timelineCard}>
+              {events.length === 0 ? (
+                <Text style={{ color: colors.textLightMuted, padding: spacing.md, textAlign: 'center' }}>
+                  No tracking milestones logged yet.
+                </Text>
+              ) : (
+                events.map((m: any, idx: number) => (
+                  <View key={idx} style={styles.milestoneRow}>
+                    <View style={styles.timelineIndicatorColumn}>
+                      <View style={[styles.milestoneDot, styles.milestoneDotCompleted]}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>✓</Text>
+                      </View>
+                      {idx < events.length - 1 && (
+                        <View style={[styles.milestoneLine, styles.milestoneLineCompleted]} />
+                      )}
+                    </View>
+
+                    <View style={styles.milestoneContent}>
+                      <Text style={[styles.milestoneTitle, { color: colors.blueAccent, fontWeight: '700' }]}>
+                        {m.eventType || 'Event'}
+                      </Text>
+                      <Text style={styles.milestoneLocation}>{m.locationText || m.notes || 'In Route'}</Text>
+                      <Text style={styles.milestoneTime}>
+                        {m.recordedAt ? new Date(m.recordedAt).toLocaleString() : ''}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </>
+        ) : searched && !loading ? (
+          <View style={[styles.consignmentCard, { alignItems: 'center', padding: spacing.xl }]}>
+            <Text style={{ fontSize: 36, marginBottom: spacing.sm }}>🔍</Text>
+            <Text style={[styles.consignmentIdText, { textAlign: 'center', marginBottom: spacing.xs }]}>
+              Shipment Not Found
+            </Text>
+            <Text style={{ color: colors.textLightMuted, textAlign: 'center' }}>
+              No active consignment matches tracking reference "{query}". Please check the ID and try again.
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );

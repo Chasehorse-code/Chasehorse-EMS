@@ -22,13 +22,25 @@ export const RegisterCustomerScreen: React.FC<RegisterCustomerScreenProps> = ({ 
   const [contactPerson, setContactPerson] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [gstin, setGstin] = useState('');
   const [region, setRegion] = useState('Tenali Urban, Andhra Pradesh');
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!companyName.trim() || !contactPerson.trim() || !email.trim() || !phone.trim() || !gstin.trim()) {
-      Alert.alert('Required Fields', 'Please fill in all corporate details including verified GSTIN.');
+    if (!companyName.trim() || !contactPerson.trim() || !email.trim() || !phone.trim() || !gstin.trim() || !password) {
+      Alert.alert('Required Fields', 'Please fill in all corporate details, verified GSTIN, and account password.');
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Security Requirement', 'Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Password Mismatch', 'Passwords do not match. Please re-enter.');
       return;
     }
 
@@ -41,10 +53,15 @@ export const RegisterCustomerScreen: React.FC<RegisterCustomerScreenProps> = ({ 
         phone,
         gstin,
         region,
+        password,
       });
-      Alert.alert('Customer Account Activated', `Welcome to ChaseHorse, ${companyName}!`);
-    } catch {
-      Alert.alert('Error', 'Failed to register customer account.');
+      Alert.alert(
+        'Registration Submitted',
+        `Corporate account registration for ${companyName} has been submitted. Check email for verification.`,
+      );
+      onBackToLogin();
+    } catch (err: any) {
+      Alert.alert('Registration Error', err.message || 'Failed to register customer account.');
     } finally {
       setLoading(false);
     }
@@ -105,6 +122,30 @@ export const RegisterCustomerScreen: React.FC<RegisterCustomerScreenProps> = ({ 
             onChangeText={setPhone}
             keyboardType="phone-pad"
             placeholder="+91 99000 12345"
+            placeholderTextColor={colors.textLightMuted}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Account Password (minimum 8 characters) *</Text>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="••••••••••••"
+            placeholderTextColor={colors.textLightMuted}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Confirm Password *</Text>
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            placeholder="••••••••••••"
             placeholderTextColor={colors.textLightMuted}
           />
         </View>

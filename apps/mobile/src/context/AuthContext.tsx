@@ -1,25 +1,26 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import type { UserProfile, Role, EmployeeSubRole } from '../types';
+import { supabase, isSupabaseConfigured } from '../config/supabase';
 
-interface RegisterEmployeeInput {
+export interface RegisterEmployeeInput {
   email: string;
   name: string;
   phone: string;
   region: string;
   subRole: EmployeeSubRole;
   coords: { lat: number; lng: number };
-  password?: string;
+  password: string;
 }
 
-interface RegisterCustomerInput {
+export interface RegisterCustomerInput {
   email: string;
   companyName: string;
   contactPerson: string;
   phone: string;
   gstin: string;
   region: string;
-  password?: string;
+  password: string;
 }
 
 interface AuthContextType {
@@ -32,7 +33,7 @@ interface AuthContextType {
   verifyOtp: (email: string, otp: string) => Promise<boolean>;
   registerEmployee: (data: RegisterEmployeeInput) => Promise<void>;
   registerCustomer: (data: RegisterCustomerInput) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   pendingAccounts: UserProfile[];
   refreshPendingAccounts: () => Promise<void>;
   approveAccount: (id: string) => Promise<void>;
@@ -41,8 +42,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://phxybimufcrsnxfepiuz.supabase.co';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Platform.OS === 'android' ? 'http://10.0.2.2:8080/api/v1' : 'http://localhost:8080/api/v1');
@@ -97,38 +96,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // Restore authenticated session from storage on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      if (!isSupabaseConfigured) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token && isMounted) {
+          const profile = await fetchServerProfile(session.access_token);
+          if (isMounted) setUser(profile);
+        }
+      } catch (err) {
+        if (isMounted) setUser(null);
+      }
+    };
+
+    restoreSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+      } else if (session.access_token) {
+        try {
+          const profile = await fetchServerProfile(session.access_token);
+          if (isMounted) setUser(profile);
+        } catch {
+          if (isMounted) setUser(null);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   const login = async (email: string, pass: string, _targetRole: Role): Promise<{ requiresOtp?: boolean }> => {
     setLoading(true);
     try {
       const trimmedEmail = email.trim().toLowerCase();
 
-      // Check if Supabase keys are configured
-      if (!SUPABASE_ANON_KEY) {
+      if (!isSupabaseConfigured) {
         throw new Error(
-          'Mobile authentication configuration missing: EXPO_PUBLIC_SUPABASE_ANON_KEY is not set. ' +
-          'Cannot establish verified security session.',
+          'Mobile authentication configuration missing: EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY must be set.',
         );
       }
 
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: trimmedEmail,
-          password: pass,
-        }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: pass,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error_description || data.message || 'Invalid email or password.');
+      if (error) {
+        throw new Error(error.message || 'Invalid email or password.');
       }
 
-      if (data.access_token) {
-        const verifiedProfile = await fetchServerProfile(data.access_token);
+      if (data.session?.access_token) {
+        const verifiedProfile = await fetchServerProfile(data.session.access_token);
         setUser(verifiedProfile);
         return { requiresOtp: false };
       }
@@ -145,29 +173,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const verifyOtp = async (email: string, otp: string): Promise<boolean> => {
     setLoading(true);
     try {
-      if (!SUPABASE_ANON_KEY) {
+      if (!isSupabaseConfigured) {
         throw new Error('Supabase configuration missing (EXPO_PUBLIC_SUPABASE_ANON_KEY).');
       }
 
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'email',
-          email: email.trim().toLowerCase(),
-          token: otp.trim(),
-        }),
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: otp.trim(),
+        type: 'email',
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.access_token) {
+      if (error || !data.session?.access_token) {
         return false;
       }
 
-      const verifiedProfile = await fetchServerProfile(data.access_token);
+      const verifiedProfile = await fetchServerProfile(data.session.access_token);
       setUser(verifiedProfile);
       return true;
     } catch {
@@ -180,20 +200,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const registerEmployee = async (data: RegisterEmployeeInput): Promise<void> => {
     setLoading(true);
     try {
-      if (!SUPABASE_ANON_KEY) {
+      if (!isSupabaseConfigured) {
         throw new Error('Supabase authentication credentials missing. Cannot register on-field worker.');
       }
 
-      const defaultPassword = data.password || 'ChaseHorse2026!';
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email.trim().toLowerCase(),
-          password: defaultPassword,
+      if (!data.password || data.password.length < 8) {
+        throw new Error('Password must be at least 8 characters long.');
+      }
+
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+        options: {
           data: {
             full_name: data.name,
             phone: data.phone,
@@ -201,17 +219,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             account_type: 'EMPLOYEE',
             sub_role: data.subRole,
           },
-        }),
+        },
       });
 
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error_description || result.message || 'Registration failed.');
+      if (error) {
+        throw new Error(error.message || 'Registration failed.');
       }
 
-      if (result.access_token) {
-        const verifiedProfile = await fetchServerProfile(result.access_token);
-        setUser(verifiedProfile);
+      // Registration without an immediate session remains unauthenticated
+      if (signUpData.session?.access_token) {
+        const verifiedProfile = await fetchServerProfile(signUpData.session.access_token);
+        // Only set user if the backend confirms the profile is active
+        if (verifiedProfile.accountStatus === 'active') {
+          setUser(verifiedProfile);
+        } else {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     } finally {
       setLoading(false);
@@ -221,20 +246,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const registerCustomer = async (data: RegisterCustomerInput): Promise<void> => {
     setLoading(true);
     try {
-      if (!SUPABASE_ANON_KEY) {
+      if (!isSupabaseConfigured) {
         throw new Error('Supabase authentication credentials missing. Cannot register corporate customer.');
       }
 
-      const defaultPassword = data.password || 'ChaseHorse2026!';
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email.trim().toLowerCase(),
-          password: defaultPassword,
+      if (!data.password || data.password.length < 8) {
+        throw new Error('Password must be at least 8 characters long.');
+      }
+
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+        options: {
           data: {
             full_name: data.contactPerson,
             company_name: data.companyName,
@@ -243,17 +266,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             region: data.region,
             account_type: 'CUSTOMER',
           },
-        }),
+        },
       });
 
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error_description || result.message || 'Registration failed.');
+      if (error) {
+        throw new Error(error.message || 'Registration failed.');
       }
 
-      if (result.access_token) {
-        const verifiedProfile = await fetchServerProfile(result.access_token);
-        setUser(verifiedProfile);
+      if (signUpData.session?.access_token) {
+        const verifiedProfile = await fetchServerProfile(signUpData.session.access_token);
+        if (verifiedProfile.accountStatus === 'active') {
+          setUser(verifiedProfile);
+        } else {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     } finally {
       setLoading(false);
@@ -320,9 +348,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshPendingAccounts();
   };
 
-  const signOut = () => {
-    setUser(null);
-    setPendingAccounts([]);
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore
+    } finally {
+      setUser(null);
+      setPendingAccounts([]);
+    }
   };
 
   const isAuthenticated = Boolean(user && user.token);
