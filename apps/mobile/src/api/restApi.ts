@@ -277,9 +277,15 @@ export const mobileApi = {
     }
   },
 
-  async getTrackingInfo(trackingId: string): Promise<any | null> {
+  async getTrackingInfo(trackingId: string, token?: string): Promise<any | null> {
     try {
-      const res = await fetch(`${BASE_URL}/tms/tracking/${trackingId}`);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${BASE_URL}/tms/tracking/${trackingId}`, { headers });
       if (res.ok) {
         return await res.json();
       }
@@ -350,7 +356,27 @@ export const mobileApi = {
     return await res.json();
   },
 
-  async getDashboardStats(customerId?: string, token?: string): Promise<DashboardStats> {
+  async getDashboardStats(
+    scopeOrToken?: { customerId?: string; token?: string } | string,
+    maybeToken?: string
+  ): Promise<DashboardStats> {
+    let customerId: string | undefined;
+    let token: string | undefined;
+
+    if (typeof scopeOrToken === 'object' && scopeOrToken !== null) {
+      customerId = scopeOrToken.customerId;
+      token = scopeOrToken.token;
+    } else if (typeof scopeOrToken === 'string' && maybeToken !== undefined) {
+      customerId = scopeOrToken;
+      token = maybeToken;
+    } else if (typeof scopeOrToken === 'string' && maybeToken === undefined) {
+      if (scopeOrToken.startsWith('ey') || scopeOrToken.length > 50) {
+        token = scopeOrToken;
+      } else {
+        customerId = scopeOrToken;
+      }
+    }
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };

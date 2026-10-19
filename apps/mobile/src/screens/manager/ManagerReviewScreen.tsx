@@ -34,7 +34,7 @@ export const ManagerReviewScreen: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       const [taskList, approvalList] = await Promise.all([
-        mobileApi.listTasks().catch(() => [] as Task[]),
+        mobileApi.listTasks(undefined, user?.token).catch(() => [] as Task[]),
         user?.token ? mobileApi.listApprovals(user.token).catch(() => [] as ApprovalRequestItem[]) : Promise.resolve([] as ApprovalRequestItem[]),
       ]);
       setTasks(taskList);
@@ -67,7 +67,7 @@ export const ManagerReviewScreen: React.FC = () => {
       if (approvalId && user?.token) {
         await mobileApi.decideApproval(approvalId, 'APPROVED', 'Approved by Operations Manager', user.token);
       } else {
-        await mobileApi.approveTask(task.id);
+        await mobileApi.approveTask(task.id, user?.token);
       }
       Alert.alert(
         'Task Approved & Reward Dispatched',
@@ -87,7 +87,7 @@ export const ManagerReviewScreen: React.FC = () => {
       if (approvalId && user?.token) {
         await mobileApi.decideApproval(approvalId, 'REJECTED', 'Rejected during manager quality review', user.token);
       } else {
-        await mobileApi.rejectTask(task.id);
+        await mobileApi.rejectTask(task.id, user?.token);
       }
       Alert.alert('Task Rejected', `Task ${task.title} has been rejected. Exception logged in audit trail.`);
       await loadData();
@@ -118,7 +118,7 @@ export const ManagerReviewScreen: React.FC = () => {
         await mobileApi.decideApproval(selectedItem.approvalId, 'REWORK', reworkNote.trim(), user.token);
       } else {
         // Fallback status update
-        await mobileApi.updateTaskStatus(selectedItem.taskId, 'in_progress');
+        await mobileApi.updateTaskStatus(selectedItem.taskId, 'in_progress', user?.token);
       }
       Alert.alert(
         'Rework Dispatched',

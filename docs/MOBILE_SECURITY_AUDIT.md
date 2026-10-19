@@ -18,6 +18,8 @@
 | **SEC-05** | Privilege Escalation & Admin Screen Lockout on Mobile | **MEDIUM** | `App.tsx`, `EmployeeController.java` | **FIXED & TESTED** |
 | **SEC-06** | Cross-Tenant Customer Data Leaks in Customer Queries | **MEDIUM** | `CustomerController.java` | **FIXED & TESTED** |
 | **SEC-07** | Hardcoded Checklists & Fallback Data Bypass | **LOW** | `ActiveTaskScreen.tsx`, `V3__standard_checklists.sql` | **FIXED & TESTED** |
+| **SEC-08** | Unconfigured Client Host Fallbacks & Missing Mobile Environment | **HIGH** | `supabase.ts`, `apps/mobile/.env` | **FIXED & TESTED** |
+| **SEC-09** | OTP Verification Bypass & Unverified Registration Trapping | **HIGH** | `LoginScreen.tsx`, `RegisterEmployeeScreen.tsx`, `AuthContext.tsx` | **FIXED & TESTED** |
 
 ---
 
@@ -103,6 +105,33 @@
   1. Created full mobile Admin portal: Admin Dashboard, Operations Review, Worker Approvals, Employee Directory, and Profile.
   2. Enforced RBAC check constraints in `EmployeeController.java` matching PostgreSQL schema (`ADMIN`, `OPERATIONS`, `FIELD_WORKER`, `CUSTOMER`, `FINANCE`).
   3. Prohibited self-approval and self-role escalation.
+
+---
+
+### SEC-08: Missing Environment Configuration & Invalid Fallback Endpoints
+- **Vulnerability Description:**  
+  The mobile application omitted a local `.env` configuration file and defaulted to `https://chasehorse-placeholder.supabase.co.invalid`. This caused unhandled DNS resolution failures on every login and sign-up attempt.
+- **Affected Files:**
+  - `apps/mobile/.env`
+  - `apps/mobile/src/config/supabase.ts`
+- **Remediation Implemented:**
+  1. Provisioned verified `.env` containing production Supabase endpoints and anon key.
+  2. Hardened `supabase.ts` to ensure fail-closed behavior with clear developer diagnostics when environment credentials are unset.
+
+---
+
+### SEC-09: Suppressed Error Propagation & OTP Verification Bypasses
+- **Vulnerability Description:**  
+  `LoginScreen.tsx` suppressed all server errors into a generic alert, preventing users from learning why authentication failed. Furthermore, sign-up flows did not implement real OTP verification, trapping unconfirmed accounts in limbo.
+- **Affected Files:**
+  - `apps/mobile/src/screens/auth/LoginScreen.tsx`
+  - `apps/mobile/src/screens/auth/RegisterEmployeeScreen.tsx`
+  - `apps/mobile/src/screens/auth/RegisterCustomerScreen.tsx`
+  - `apps/mobile/src/context/AuthContext.tsx`
+- **Remediation Implemented:**
+  1. Refactored `AuthContext.login` and `LoginScreen.tsx` to surface real server validation errors directly in an inline error banner.
+  2. Integrated native 6-digit Supabase OTP email verification into `RegisterEmployeeScreen` and `RegisterCustomerScreen`.
+  3. Added resend cooldown timers and enforced real server-side OTP token verification before granting session access.
 
 ---
 

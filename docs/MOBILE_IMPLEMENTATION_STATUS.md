@@ -74,6 +74,14 @@ All synthetic/mock fallback behaviors, fabricated AI confidence scores, hardcode
 - Replaced local mock alerts with real backend bookings using `mobileApi.createShipment`.
 - Backend calculates freight charges using server rates (`baseRate + distanceKm * perKmRate`). Client-supplied amounts are validated against server calculations.
 
+### 3.6 Authentication, Registration & Critical QA Hardening
+- **Environment & Supabase Initialization:** Provisioned `apps/mobile/.env` and hardened `supabase.ts` against `.invalid` fallback endpoints.
+- **Real OTP Verification UX:** Implemented in-place 6-digit confirmation code verification with 60-second cooldown timers in `RegisterEmployeeScreen.tsx` and `RegisterCustomerScreen.tsx`.
+- **Server Error Transparency:** Replaced generic error popups with inline error banners and real server feedback in `LoginScreen.tsx`.
+- **Approval Quarantine Refresh:** Added instant `checkApprovalStatus()` action on `PendingApprovalScreen.tsx`.
+- **API Client Overloads:** Overloaded `getDashboardStats`, `getTrackingInfo`, and `listTasks` to forward authenticated bearer tokens seamlessly.
+- **Empty & Loading States:** Added `ActivityIndicator`, informative empty state callouts, and `RefreshControl` across `WalletScreen`, `CustomerTransportScreen`, and `NearbyTasksScreen`.
+
 ---
 
 ## 4. Verification Evidence
@@ -87,14 +95,26 @@ All synthetic/mock fallback behaviors, fabricated AI confidence scores, hardcode
   - **Total:** 30 tests run, 0 failures, 0 errors.
 
 ### 4.2 Mobile TypeScript Typecheck
-- **Command:** `npx tsc --noEmit` in `apps/mobile/`
+- **Command:** `npm run typecheck` (`tsc --noEmit`) in `apps/mobile/`
 - **Result:** Exit code 0 (Zero errors).
 
-### 4.3 Web Dashboard Typecheck & Production Build
+### 4.3 Mobile Production Web Bundle Export
+- **Command:** `npx expo export --platform web` in `apps/mobile/`
+- **Result:** Exit code 0 (758 kB production bundle generated into `apps/mobile/dist/`).
+
+### 4.4 Mobile Auth & QA Integration Suite
+- **Command:** `node apps/mobile/scripts/test-mobile-auth-and-qa.mjs`
+- **Result:** 28 of 28 checks PASSED (Configuration, Client Validation, Supabase Auth Handshake, Negative Authentication, Account Status Quarantine, Backend Authorization Boundaries).
+
+### 4.5 All-Modules End-to-End Verification
+- **Command:** `node apps/mobile/scripts/verify-all-modules.mjs`
+- **Result:** 12 of 12 checks PASSED against Spring Boot backend and Supabase PostgreSQL.
+
+### 4.6 Web Dashboard Typecheck & Production Build
 - **Commands:** `npm run typecheck` && `npm run build` in web root
 - **Results:**
   - `tsc -b --noEmit`: Exit code 0
-  - `vite build`: Built in 15.71s with 0 errors. Output bundle in `dist/`.
+  - `vite build`: Built in 24.29s with 0 errors. Output bundle in `dist/`.
 
 ---
 
@@ -107,3 +127,5 @@ All synthetic/mock fallback behaviors, fabricated AI confidence scores, hardcode
 2. **Physical Expo Push Notification Credentials:**
    - In-app notification polling and event history are functional.
    - APNs and FCM credentials must be provisioned in Expo Application Services (EAS) during production binary build.
+3. **Physical Hardware Peripherals:**
+   - Bluetooth mobile receipt / barcode thermal printers require physical device connectivity for hardware validation. Mobile UI supports software confirmation references.

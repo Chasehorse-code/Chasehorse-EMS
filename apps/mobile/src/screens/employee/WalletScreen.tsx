@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { colors, spacing, radius } from '../../theme';
 import { Header } from '../../components/ui/Header';
@@ -18,26 +20,36 @@ export const WalletScreen: React.FC = () => {
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
   const [account, setAccount] = useState<{ balanceInr: number; pendingInr: number }>({ balanceInr: 0, pendingInr: 0 });
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      setLoading(true);
-      Promise.all([
+  const fetchWallet = async () => {
+    if (!user?.id) return;
+    try {
+      const [acc, transactions] = await Promise.all([
         mobileApi.getWalletAccount(user.id, user.token),
         mobileApi.getWalletTransactions(user.id, user.token),
-      ])
-        .then(([acc, transactions]) => {
-          if (acc) {
-            setAccount({ balanceInr: acc.balanceInr, pendingInr: acc.pendingInr });
-          }
-          setTxns(transactions || []);
-        })
-        .catch(() => {
-          setTxns([]);
-        })
-        .finally(() => setLoading(false));
+      ]);
+      if (acc) {
+        setAccount({ balanceInr: acc.balanceInr, pendingInr: acc.pendingInr });
+      }
+      setTxns(transactions || []);
+    } catch {
+      setTxns([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchWallet();
   }, [user?.id, user?.token]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchWallet();
+  };
 
   const completedTotal = account.balanceInr;
   const pendingTotal = account.pendingInr;
@@ -52,7 +64,12 @@ export const WalletScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header title="Worker Wallet & Ledger" subtitle="Immutable Reward Accounting & Operations Approvals" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.blueAccent} />
+        }
+      >
         {/* Balances Card */}
         <View style={styles.balanceCard}>
           <View style={styles.balanceRow}>
@@ -78,7 +95,25 @@ export const WalletScreen: React.FC = () => {
         {/* Ledger Transactions */}
         <Text style={styles.sectionHeading}>TRANSACTION AUDIT LEDGER</Text>
 
-        {txns.map((t) => (
+        {loading ? (
+          <View style={{ padding: spacing.xl, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={colors.blueAccent} />
+            <Text style={{ color: colors.textLightMuted, marginTop: spacing.md, fontSize: 13 }}>
+              Syncing immutable wallet ledger...
+            </Text>
+          </View>
+        ) : txns.length === 0 ? (
+          <View style={{ backgroundColor: colors.navyDark, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderDark, padding: spacing.xl, alignItems: 'center', marginTop: spacing.sm }}>
+            <Text style={{ fontSize: 36, marginBottom: spacing.sm }}>💳</Text>
+            <Text style={{ color: colors.textLight, fontSize: 16, fontWeight: '700', marginBottom: spacing.xs }}>
+              No Transactions Recorded
+            </Text>
+            <Text style={{ color: colors.textLightMuted, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+              Complete field task assignments with GPS and photographic evidence to earn verified bounty credits.
+            </Text>
+          </View>
+        ) : (
+          txns.map((t) => (
           <View key={t.id} style={styles.txnCard}>
             <View style={styles.txnTop}>
               <View style={{ flex: 1 }}>
@@ -105,7 +140,8 @@ export const WalletScreen: React.FC = () => {
               </View>
             </View>
           </View>
-        ))}
+        ))
+      )}
       </ScrollView>
     </View>
   );

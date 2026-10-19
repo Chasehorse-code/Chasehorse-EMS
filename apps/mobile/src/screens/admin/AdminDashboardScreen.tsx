@@ -33,7 +33,7 @@ export const AdminDashboardScreen: React.FC<Props> = ({
 
   const loadStats = useCallback(async () => {
     try {
-      const data = await mobileApi.getDashboardStats(user?.token);
+      const data = await mobileApi.getDashboardStats(undefined, user?.token);
       setStats(data);
     } catch (err) {
       console.warn('[AdminDashboard] Failed to fetch server stats:', err);

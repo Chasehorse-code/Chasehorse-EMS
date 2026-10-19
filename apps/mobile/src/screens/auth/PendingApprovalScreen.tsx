@@ -1,10 +1,38 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { colors, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 
 export const PendingApprovalScreen: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, checkApprovalStatus } = useAuth();
+  const [checking, setChecking] = useState(false);
+
+  const handleCheckStatus = async () => {
+    setChecking(true);
+    try {
+      const res = await checkApprovalStatus();
+      if (res.approved) {
+        Alert.alert(
+          'Account Approved!',
+          'Your worker profile has been approved by Operations. Welcome to ChaseHorse Field Operations!',
+        );
+      } else if (res.status === 'rejected') {
+        Alert.alert(
+          'Application Status: Rejected',
+          'Your registration was reviewed and not approved by Operations. Please contact support.',
+        );
+      } else {
+        Alert.alert(
+          'Status: Pending Review',
+          'Your account is still awaiting review by an Operations Manager. We appreciate your patience.',
+        );
+      }
+    } catch {
+      Alert.alert('Network Issue', 'Could not sync latest approval status with the server.');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -28,6 +56,18 @@ export const PendingApprovalScreen: React.FC = () => {
         <Text style={styles.policyText}>
           In compliance with the ERP blueprint, on-field workers must be verified by an Operations Manager before accepting paid field assignments or accessing the wallet ledger.
         </Text>
+
+        <TouchableOpacity
+          style={[styles.checkBtn, checking && styles.btnDisabled]}
+          onPress={handleCheckStatus}
+          disabled={checking}
+        >
+          {checking ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.checkText}>Check Approval Status 🔄</Text>
+          )}
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
           <Text style={styles.logoutText}>Sign Out</Text>
@@ -101,6 +141,24 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginBottom: spacing.lg,
   },
+  checkBtn: {
+    backgroundColor: colors.bluePrimary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    width: '100%',
+  },
+  btnDisabled: {
+    opacity: 0.6,
+  },
+  checkText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   logoutBtn: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderWidth: 1,
@@ -108,6 +166,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
+    width: '100%',
+    alignItems: 'center',
   },
   logoutText: {
     color: '#F87171',

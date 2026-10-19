@@ -1,10 +1,17 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl =
+  process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://phxybimufcrsnxfepiuz.supabase.co';
+const supabaseAnonKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_OKwNl5c5VD_IKZHi7rL_AQ_rciWCKSp';
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const isSupabaseConfigured = Boolean(
+  supabaseUrl &&
+  supabaseAnonKey &&
+  !supabaseUrl.includes('invalid') &&
+  supabaseAnonKey !== 'unconfigured-key'
+);
 
 if (!isSupabaseConfigured) {
   console.warn(
@@ -13,8 +20,8 @@ if (!isSupabaseConfigured) {
 }
 
 export const supabase: SupabaseClient = createClient(
-  supabaseUrl || 'https://unconfigured.supabase.invalid',
-  supabaseAnonKey || 'unconfigured-key',
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       storage: AsyncStorage,

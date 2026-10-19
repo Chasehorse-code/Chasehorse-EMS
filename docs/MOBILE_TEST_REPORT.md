@@ -11,10 +11,13 @@
 
 | Test Domain | Target Directory | Command Executed | Result | Duration |
 |---|---|---|---|---|
-| **Backend Unit & Security Tests** | `backend/erp-api/` | `mvn test` | **PASS (30/30)** | 19.1s |
-| **Mobile TypeScript Compilation** | `apps/mobile/` | `npx tsc --noEmit` | **PASS (0 errors)** | 3.4s |
+| **Backend Unit & Security Tests** | `backend/erp-api/` | `mvn test` | **PASS (30/30)** | 20.3s |
+| **Mobile TypeScript Compilation** | `apps/mobile/` | `npm run typecheck` | **PASS (0 errors)** | 3.4s |
+| **Mobile Web Production Export** | `apps/mobile/` | `npx expo export --platform web` | **PASS (758 kB bundle)** | 5.0s |
+| **Mobile Auth & QA Integration Suite** | `apps/mobile/` | `node scripts/test-mobile-auth-and-qa.mjs` | **PASS (28/28 checks)** | 1.8s |
+| **Mobile All-Modules E2E Verification**| `apps/mobile/` | `node scripts/verify-all-modules.mjs` | **PASS (12/12 checks)** | 1.5s |
 | **Web TypeScript Compilation** | Workspace Root | `npm run typecheck` | **PASS (0 errors)** | 2.1s |
-| **Web Production Vite Build** | Workspace Root | `npm run build` | **PASS (0 errors)** | 15.7s |
+| **Web Production Vite Build** | Workspace Root | `npm run build` | **PASS (0 errors)** | 24.3s |
 
 ---
 
