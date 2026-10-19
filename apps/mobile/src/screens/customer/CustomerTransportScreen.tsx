@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,12 @@ import { mobileApi } from '../../api/restApi';
 import type { TruckPlan } from '../../types';
 
 export const CustomerTransportScreen: React.FC = () => {
-  const plans = mobileApi.getTruckPlans();
+  const [plans, setPlans] = useState<TruckPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<TruckPlan | null>(null);
+
+  useEffect(() => {
+    mobileApi.getTruckPlans().then(setPlans);
+  }, []);
 
   const handleBook = (plan: TruckPlan) => {
     setSelectedPlan(plan);

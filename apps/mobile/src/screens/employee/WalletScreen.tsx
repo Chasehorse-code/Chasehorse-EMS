@@ -16,7 +16,7 @@ export const WalletScreen: React.FC = () => {
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
 
   useEffect(() => {
-    setTxns(mobileApi.getWalletTransactions());
+    mobileApi.getWalletTransactions().then(setTxns);
   }, []);
 
   const completedTotal = txns

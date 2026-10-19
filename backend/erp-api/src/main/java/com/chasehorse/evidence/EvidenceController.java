@@ -24,9 +24,12 @@ public class EvidenceController {
     private final JdbcTemplate jdbc;
     private final AuditService audit;
 
-    public EvidenceController(JdbcTemplate jdbc, AuditService audit) {
+    private final com.chasehorse.auth.RoleAuthorization roleAuth;
+
+    public EvidenceController(JdbcTemplate jdbc, AuditService audit, com.chasehorse.auth.RoleAuthorization roleAuth) {
         this.jdbc = jdbc;
         this.audit = audit;
+        this.roleAuth = roleAuth;
     }
 
     public record EvidencePhotoView(
@@ -68,16 +71,41 @@ public class EvidenceController {
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'CUSTOMER', 'FIELD_WORKER')")
     public List<EvidenceView> listEvidence(
         @RequestParam(required = false) UUID taskId,
-        @RequestParam(required = false) UUID customerId
+        @RequestParam(required = false) UUID customerId,
+        @AuthenticationPrincipal Jwt jwt
     ) {
-        String sql = """
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        boolean isAdminOrOps = roles.stream().anyMatch(r ->
+            r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("MANAGER") || r.equalsIgnoreCase("OPERATIONS"));
+
+        StringBuilder sql = new StringBuilder("""
             SELECT e.id, e.task_id, e.submitted_by, e.created_at, e.verification_status, e.verification_notes
             FROM task_evidence e
-            """ + (taskId != null ? " WHERE e.task_id = ? " : "") +
-            " ORDER BY e.created_at DESC LIMIT 200";
+            JOIN tasks t ON e.task_id = t.id
+            WHERE 1=1
+            """);
+        List<Object> params = new java.util.ArrayList<>();
 
-        Object[] params = taskId != null ? new Object[]{taskId} : new Object[]{};
-        return jdbc.query(sql, (rs, n) -> {
+        if (!isAdminOrOps) {
+            if (roles.stream().anyMatch(r -> r.equalsIgnoreCase("CUSTOMER"))) {
+                sql.append(" AND t.customer_id = ? ");
+                params.add(actorId);
+            } else if (roles.stream().anyMatch(r -> r.equalsIgnoreCase("FIELD_WORKER") || r.equalsIgnoreCase("EMPLOYEE"))) {
+                sql.append(" AND (t.assigned_to = ? OR e.submitted_by = ?) ");
+                params.add(actorId);
+                params.add(actorId);
+            }
+        }
+
+        if (taskId != null) {
+            sql.append(" AND e.task_id = ? ");
+            params.add(taskId);
+        }
+
+        sql.append(" ORDER BY e.created_at DESC LIMIT 200");
+
+        return jdbc.query(sql.toString(), (rs, n) -> {
             UUID id = rs.getObject("id", UUID.class);
             UUID tId = rs.getObject("task_id", UUID.class);
             UUID subBy = rs.getObject("submitted_by", UUID.class);
@@ -99,7 +127,21 @@ public class EvidenceController {
                 ), id
             );
 
-            AiVerificationView ai = new AiVerificationView("PASSED", new BigDecimal("0.96"), "All checklist items matched GPS bounds");
+            // Fetch genuine AI verification results from database
+            var aiRows = jdbc.query("""
+                SELECT status, confidence, summary
+                FROM ai_verifications WHERE evidence_id = ?
+                ORDER BY created_at DESC LIMIT 1
+                """, (ars, an) -> new AiVerificationView(
+                    ars.getString("status"),
+                    ars.getBigDecimal("confidence"),
+                    ars.getString("summary")
+                ), id
+            );
+            AiVerificationView ai = !aiRows.isEmpty()
+                ? aiRows.get(0)
+                : new AiVerificationView("NOT_RUN", null, "No AI verification record found");
+
             ManagerDecisionView manager = new ManagerDecisionView(
                 vStatus != null ? vStatus : "PENDING",
                 "Operations Reviewer",
@@ -108,7 +150,7 @@ public class EvidenceController {
             );
 
             return new EvidenceView(id, tId, subBy, created, photos, ai, manager);
-        }, params);
+        }, params.toArray());
     }
 
     @PostMapping

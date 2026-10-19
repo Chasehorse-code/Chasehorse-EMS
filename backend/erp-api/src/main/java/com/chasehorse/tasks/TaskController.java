@@ -19,9 +19,11 @@ import java.util.UUID;
 @RequestMapping("/api/v1/tasks")
 public class TaskController {
     private final TaskService taskService;
+    private final com.chasehorse.auth.RoleAuthorization roleAuth;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService, com.chasehorse.auth.RoleAuthorization roleAuth) {
         this.taskService = taskService;
+        this.roleAuth = roleAuth;
     }
 
     public record CreateTaskRequest(
@@ -46,14 +48,24 @@ public class TaskController {
 
     @GetMapping
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE', 'CUSTOMER', 'FIELD_WORKER')")
-    public List<TaskService.TaskView> listTasks(@RequestParam(required = false) UUID customerId) {
-        return taskService.listTasks(customerId);
+    public List<TaskService.TaskView> listTasks(
+        @RequestParam(required = false) UUID customerId,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        return taskService.listTasksScoped(actorId, roles, customerId);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE', 'CUSTOMER', 'FIELD_WORKER')")
-    public TaskService.TaskView getTask(@PathVariable UUID id) {
-        return taskService.getTask(id);
+    public TaskService.TaskView getTask(
+        @PathVariable UUID id,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        return taskService.getTaskScoped(id, actorId, roles);
     }
 
     @PostMapping
@@ -77,6 +89,16 @@ public class TaskController {
         ));
     }
 
+    @PostMapping("/{taskId}/accept")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS', 'EMPLOYEE', 'FIELD_WORKER')")
+    public TaskService.TaskView acceptTask(
+        @PathVariable UUID taskId,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        return taskService.acceptTaskAtomically(taskId, actorId);
+    }
+
     @PostMapping("/{taskId}/assignment")
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS')")
     public TaskService.TaskView assignTask(
@@ -89,13 +111,14 @@ public class TaskController {
     }
 
     @PatchMapping("/{taskId}/status")
-    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'FIELD_WORKER')")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'CUSTOMER', 'EMPLOYEE', 'FIELD_WORKER')")
     public TaskService.TaskView updateStatus(
         @PathVariable UUID taskId,
         @Valid @RequestBody UpdateStatusRequest request,
         @AuthenticationPrincipal Jwt jwt
     ) {
         UUID actorId = UUID.fromString(jwt.getSubject());
-        return taskService.updateStatus(taskId, request.status(), actorId);
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        return taskService.updateStatusValidated(taskId, request.status(), actorId, roles);
     }
 }

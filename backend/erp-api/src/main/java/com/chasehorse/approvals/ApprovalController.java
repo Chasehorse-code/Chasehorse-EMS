@@ -111,9 +111,9 @@ public class ApprovalController {
             String idempotencyKey = "task-reward-" + taskId;
             jdbc.update("""
                 INSERT INTO wallet_ledger (id, user_id, task_id, idempotency_key, entry_type, amount, currency, description, created_by)
-                VALUES (gen_random_uuid(), ?, ?, ?, 'TASK_REWARD', ?, 'INR', 'Reward for completing task', ?)
+                VALUES (?, ?, ?, ?, 'TASK_REWARD', ?, 'INR', 'Reward for completing task', ?)
                 ON CONFLICT (idempotency_key) DO NOTHING
-                """, employeeId, taskId, idempotencyKey, reward, actorId);
+                """, UUID.randomUUID(), employeeId, taskId, idempotencyKey, reward, actorId);
 
             audit.log(actorId, "WALLET_CREDITED", "WALLET_LEDGER", employeeId,
                 Map.of("taskId", taskId.toString(), "amount", reward.toString()));

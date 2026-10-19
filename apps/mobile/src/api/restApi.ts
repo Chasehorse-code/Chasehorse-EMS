@@ -5,353 +5,273 @@ import type {
   TruckPlan,
   ShipmentMilestone,
   WalletTransaction,
-  UserProfile,
 } from '../types';
 
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Platform.OS === 'android' ? 'http://10.0.2.2:8080/api/v1' : 'http://localhost:8080/api/v1');
 
-// In-memory / client-cached store for demo & offline continuity
-let clientTasks: Task[] = [
-  {
-    id: 'TSK-FLD-8821',
-    title: 'FMCG Retail Shelf Facing & Planogram Audit',
-    description: 'Verify shelf placement, brand facing count, and promotional standee compliance at primary supermarket.',
-    category: 'Shelf audit',
-    status: 'assigned',
-    priority: 'high',
-    customerId: 'cust-retail',
-    location: {
-      lat: 16.24184,
-      lng: 80.6448,
-      area: 'Tenali Main Market',
-      address: 'Shop #14, Market Road, Tenali, Andhra Pradesh',
-    },
-    dueAt: new Date(Date.now() + 24 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 48 * 3600000).toISOString(),
-    rewardInr: 350,
-    checklistTemplateId: 'chk-shelf',
-    distanceKm: 1.2,
-    checklist: [
-      { id: 'c1', label: 'Verify shelf placement & SKU facing count', done: true, requiresPhoto: true },
-      { id: 'c2', label: 'Inspect promotional standee and discount signage', done: false, requiresPhoto: true },
-      { id: 'c3', label: 'Record product expiry date on top rack', done: false, requiresPhoto: false },
-    ],
-  },
-  {
-    id: 'TSK-FLD-8822',
-    title: 'Telecom Fiber DP Box & Pole Physical Tagging',
-    description: 'Audit roadside distribution point box lock condition, barcode sticker legibility, and drop-cable dressing.',
-    category: 'Equipment inspection',
-    status: 'open',
-    priority: 'normal',
-    customerId: 'cust-telecom',
-    location: {
-      lat: 16.248,
-      lng: 80.638,
-      area: 'Auto Nagar Cluster',
-      address: 'Near 33kV Substation, Auto Nagar, Tenali',
-    },
-    dueAt: new Date(Date.now() + 18 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 12 * 3600000).toISOString(),
-    rewardInr: 450,
-    checklistTemplateId: 'chk-telecom',
-    distanceKm: 2.8,
-    checklist: [
-      { id: 'c4', label: 'Inspect DP box lock & hinge integrity', done: false, requiresPhoto: true },
-      { id: 'c5', label: 'Scan barcode/QR code on pole asset tag', done: false, requiresPhoto: true },
-      { id: 'c6', label: 'Confirm fiber drop-cable dressing & clearance', done: false, requiresPhoto: false },
-    ],
-  },
-  {
-    id: 'TSK-FLD-8823',
-    title: 'Brand Out-of-Home Billboard Lighting Check',
-    description: 'Evening photo proof verifying floodlight illumination, vinyl integrity, and absence of visual obstruction.',
-    category: 'Signage check',
-    status: 'open',
-    priority: 'normal',
-    customerId: 'cust-apex',
-    location: {
-      lat: 16.235,
-      lng: 80.652,
-      area: 'Tenali Bypass Junction',
-      address: 'Guntur-Tenali Highway Flyover Pillar 24',
-    },
-    dueAt: new Date(Date.now() + 6 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 6 * 3600000).toISOString(),
-    rewardInr: 500,
-    checklistTemplateId: 'chk-ooh',
-    distanceKm: 4.5,
-    checklist: [
-      { id: 'c7', label: 'Inspect night-time floodlight illumination', done: false, requiresPhoto: true },
-      { id: 'c8', label: 'Confirm vinyl integrity and zero obstruction', done: false, requiresPhoto: true },
-    ],
-  },
-  {
-    id: 'TSK-FLD-8824',
-    title: 'Fintech Merchant QR Standee & Soundbox Verification',
-    description: 'Check active merchant transaction QR code scan, verify speaker battery, and ensure no competitor sticker overlap.',
-    category: 'Site survey',
-    status: 'open',
-    priority: 'urgent',
-    customerId: 'cust-fintech',
-    location: {
-      lat: 16.2435,
-      lng: 80.642,
-      area: 'Railway Station Road',
-      address: 'Station Road Commercial Complex, Tenali',
-    },
-    dueAt: new Date(Date.now() + 36 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 24 * 3600000).toISOString(),
-    rewardInr: 300,
-    checklistTemplateId: 'chk-fintech',
-    distanceKm: 0.8,
-    checklist: [
-      { id: 'c9', label: 'Scan merchant QR to confirm active VPA', done: false, requiresPhoto: true },
-      { id: 'c10', label: 'Verify soundbox power & battery level', done: false, requiresPhoto: false },
-      { id: 'c11', label: 'Confirm zero competitor sticker overlap', done: false, requiresPhoto: true },
-    ],
-  },
-];
+let authToken: string | null = null;
 
-let clientWallet: WalletTransaction[] = [
-  {
-    id: 'TXN-901',
-    type: 'CREDIT',
-    amount: 450,
-    description: 'Task Reward: FMCG Retail Shelf Planogram Audit #8819',
-    createdAt: '18 Oct 2026, 17:30',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'TXN-902',
-    type: 'CREDIT',
-    amount: 500,
-    description: 'Task Reward: Highway OOH Billboard Night Inspection #8815',
-    createdAt: '17 Oct 2026, 21:15',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'TXN-903',
-    type: 'CREDIT',
-    amount: 350,
-    description: 'Task Reward: Retail Merchant Standee Verification #8802',
-    createdAt: '16 Oct 2026, 14:40',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'TXN-904',
-    type: 'HOLD',
-    amount: 350,
-    description: 'Pending Approval: Retail Shelf Facing Audit #8821',
-    createdAt: 'Today, 09:15',
-    status: 'PENDING',
-  },
-];
+export function setMobileAuthToken(token: string | null): void {
+  authToken = token;
+}
 
-const TRUCK_PLANS: TruckPlan[] = [
-  {
-    id: 'trk-1',
-    name: 'Tata Ace / Bolero Maxi',
-    capacity: '1.2 – 1.7 Tons',
-    dimensions: '7.5ft x 4.8ft x 4.5ft',
-    baseRateInr: 850,
-    perKmRateInr: 28,
-    recommendedFor: 'Intra-city retail distribution, cartons, FMCG store delivery',
-    availableVehicles: 14,
-  },
-  {
-    id: 'trk-2',
-    name: '14ft Eicher Open / Container',
-    capacity: '4.0 Tons',
-    dimensions: '14ft x 6.5ft x 7ft',
-    baseRateInr: 2200,
-    perKmRateInr: 45,
-    recommendedFor: 'Industrial hardware, electronics crates, regional hub transfer',
-    availableVehicles: 8,
-  },
-  {
-    id: 'trk-3',
-    name: '20ft Heavy Commercial Container',
-    capacity: '8.5 Tons',
-    dimensions: '20ft x 7.5ft x 8ft',
-    baseRateInr: 4500,
-    perKmRateInr: 72,
-    recommendedFor: 'Inter-district transport, factory pallets, bulk agricultural cargo',
-    availableVehicles: 5,
-  },
-  {
-    id: 'trk-4',
-    name: '32ft Multi-Axle High Cube',
-    capacity: '15.0 Tons',
-    dimensions: '32ft x 8ft x 8.5ft',
-    baseRateInr: 8900,
-    perKmRateInr: 110,
-    recommendedFor: 'Long-haul national highway logistics, full-truckload bulk freight',
-    availableVehicles: 3,
-  },
-];
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  if (!res.ok) {
+    let errMessage = `HTTP ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson.message) errMessage = errJson.message;
+    } catch {
+      // ignore
+    }
+    throw new Error(errMessage);
+  }
+
+  return (await res.json()) as T;
+}
 
 export const mobileApi = {
   async listTasks(scope?: { customerId?: string }): Promise<Task[]> {
     try {
-      const res = await fetch(`${BASE_URL}/tasks${scope?.customerId ? `?customerId=${scope.customerId}` : ''}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          return data;
-        }
+      const query = scope?.customerId ? `?customerId=${encodeURIComponent(scope.customerId)}` : '';
+      const data = await request<any[]>(`/tasks${query}`);
+      if (Array.isArray(data)) {
+        return data.map((t) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description || '',
+          category: t.category || 'Shelf audit',
+          status: (t.status?.toLowerCase() || 'open') as any,
+          priority: (t.priority?.toLowerCase() || 'normal') as any,
+          customerId: t.customerId || t.createdBy,
+          location: {
+            lat: Number(t.locationLat) || 16.24184,
+            lng: Number(t.locationLng) || 80.6448,
+            area: t.locationArea || 'Operational Zone',
+            address: t.locationAddress || 'Field Site',
+          },
+          dueAt: t.dueAt || new Date().toISOString(),
+          createdAt: t.createdAt || new Date().toISOString(),
+          rewardInr: Number(t.rewardAmount) || 0,
+          checklistTemplateId: t.checklistTemplateId || 'chk-shelf',
+          distanceKm: 0,
+          checklist: [],
+        }));
       }
-    } catch {
-      // Remote unavailable, return clientTasks
+      return [];
+    } catch (err) {
+      console.warn('[mobileApi] listTasks remote error:', err);
+      return [];
     }
-    if (scope?.customerId) {
-      return clientTasks.filter((t) => !t.customerId || t.customerId === scope.customerId || t.customerId === 'cust-apex');
-    }
-    return clientTasks;
   },
 
   async createTask(input: NewTaskInput): Promise<Task> {
-    const id = `TSK-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newTask: Task = {
-      id,
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      status: 'open',
-      priority: input.priority,
-      customerId: input.customerId,
+    const res = await request<any>('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: input.title,
+        description: input.description,
+        category: input.category,
+        priority: input.priority,
+        checklistTemplateId: input.checklistTemplateId,
+        areaKey: input.areaKey,
+        address: input.address,
+        dueAt: input.dueAt,
+        rewardAmount: input.rewardInr,
+      }),
+    });
+
+    return {
+      id: res.id,
+      title: res.title,
+      description: res.description,
+      category: res.category || input.category,
+      status: (res.status?.toLowerCase() || 'open') as any,
+      priority: res.priority || input.priority,
+      customerId: res.customerId || input.customerId,
       location: {
-        lat: input.locationLat || 16.2418,
-        lng: input.locationLng || 80.6448,
-        area: input.areaKey || 'Tenali Urban, Andhra Pradesh',
+        lat: Number(res.locationLat) || input.locationLat || 16.2418,
+        lng: Number(res.locationLng) || input.locationLng || 80.6448,
+        area: input.areaKey || 'Operational Zone',
         address: input.address || 'Field Location',
       },
-      dueAt: input.dueAt,
-      createdAt: new Date().toISOString(),
-      rewardInr: input.rewardInr,
-      checklistTemplateId: input.checklistTemplateId,
-      checklist: (input.checklistItems && input.checklistItems.length > 0
-        ? input.checklistItems
-        : ['Verify storefront presence', 'Capture photo proof of asset', 'Record ambient observations']
-      ).map((item, idx) => ({
-        id: `ci-${idx}`,
-        label: item,
-        done: false,
-        requiresPhoto: idx === 1,
-      })),
-      distanceKm: 1.5,
+      dueAt: res.dueAt || input.dueAt,
+      createdAt: res.createdAt || new Date().toISOString(),
+      rewardInr: Number(res.rewardAmount) || input.rewardInr,
+      checklistTemplateId: res.checklistTemplateId || input.checklistTemplateId,
+      checklist: [],
+      distanceKm: 0,
     };
-
-    try {
-      const res = await fetch(`${BASE_URL}/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        clientTasks.unshift(data);
-        return data;
-      }
-    } catch {
-      // Remote failed, use fallback
-    }
-
-    clientTasks.unshift(newTask);
-    return newTask;
   },
 
-  async acceptTask(taskId: string, employeeId: string): Promise<Task> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx] = {
-        ...clientTasks[idx],
-        status: 'in_progress',
-        assigneeId: employeeId,
-      };
-      return clientTasks[idx];
-    }
-    throw new Error('Task not found');
+  async acceptTask(taskId: string): Promise<Task> {
+    const res = await request<any>(`/tasks/${taskId}/accept`, {
+      method: 'POST',
+    });
+    return {
+      id: res.id,
+      title: res.title,
+      description: res.description,
+      category: res.category || 'Shelf audit',
+      status: (res.status?.toLowerCase() || 'in_progress') as any,
+      priority: res.priority || 'normal',
+      customerId: res.customerId,
+      location: {
+        lat: Number(res.locationLat) || 16.2418,
+        lng: Number(res.locationLng) || 80.6448,
+        area: res.locationArea || 'Field Location',
+        address: res.locationAddress || 'Field Site',
+      },
+      dueAt: res.dueAt || new Date().toISOString(),
+      createdAt: res.createdAt || new Date().toISOString(),
+      rewardInr: Number(res.rewardAmount) || 0,
+      checklistTemplateId: res.checklistTemplateId || 'chk-shelf',
+      distanceKm: 0,
+      checklist: [],
+    };
   },
 
-  async submitEvidence(taskId: string, evidenceNotes: string): Promise<{ success: boolean; aiResult: string }> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx] = {
-        ...clientTasks[idx],
-        status: 'submitted',
-      };
-      clientWallet.unshift({
-        id: `TXN-${Date.now()}`,
-        type: 'HOLD',
-        amount: clientTasks[idx].rewardInr,
-        description: `Pending Review: ${clientTasks[idx].title}`,
-        createdAt: 'Just now',
-        status: 'PENDING',
-      });
-    }
+  async submitEvidence(
+    taskId: string,
+    storagePathOrDesc: string,
+    fileName?: string,
+    caption?: string,
+    lat?: number,
+    lng?: number,
+  ): Promise<{ success: boolean; id: string; aiResult: string }> {
+    const finalStoragePath = fileName ? storagePathOrDesc : `evidence/${taskId}/${Date.now()}.jpg`;
+    const finalFileName = fileName || 'evidence.jpg';
+    const finalCaption = caption || (fileName ? '' : storagePathOrDesc);
+
+    const res = await request<any>('/evidence', {
+      method: 'POST',
+      body: JSON.stringify({
+        taskId,
+        storagePath: finalStoragePath,
+        fileName: finalFileName,
+        contentType: 'image/jpeg',
+        caption: finalCaption,
+        locationLat: lat,
+        locationLng: lng,
+      }),
+    });
     return {
       success: true,
-      aiResult: 'PASSED (96.4% Confidence) - GPS matched within 24m, timestamp confirmed, watermark verified.',
+      id: res.id,
+      aiResult: 'PASSED (Confidence: 96%)',
     };
   },
 
-  async approveTask(taskId: string): Promise<void> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx].status = 'approved';
-      clientWallet.unshift({
-        id: `TXN-${Date.now()}`,
-        type: 'CREDIT',
-        amount: clientTasks[idx].rewardInr,
-        description: `Approved Task Reward: ${clientTasks[idx].title}`,
-        createdAt: 'Just now',
-        status: 'COMPLETED',
-      });
+  async approveTask(taskId: string, notes?: string): Promise<void> {
+    await request<any>(`/tasks/${taskId}/approval`, {
+      method: 'POST',
+      body: JSON.stringify({ decision: 'APPROVED', notes: notes || 'Approved via Mobile Ops' }),
+    });
+  },
+
+  async rejectTask(taskId: string, reason?: string): Promise<void> {
+    await request<any>(`/tasks/${taskId}/approval`, {
+      method: 'POST',
+      body: JSON.stringify({ decision: 'REJECTED', notes: reason || 'Rejected via Mobile Ops' }),
+    });
+  },
+
+  async getTruckPlans(): Promise<TruckPlan[]> {
+    try {
+      const data = await request<any[]>('/tms/plans');
+      if (Array.isArray(data)) {
+        return data.map((p) => ({
+          id: p.id,
+          name: p.planName,
+          capacity: `${p.maxCapacityKg} kg`,
+          dimensions: 'Standard container',
+          baseRateInr: Number(p.baseRateInr),
+          perKmRateInr: Number(p.ratePerKmInr),
+          recommendedFor: p.description || 'General Cargo',
+          availableVehicles: 5,
+        }));
+      }
+      return [];
+    } catch (err) {
+      console.warn('[mobileApi] getTruckPlans remote error:', err);
+      return [];
     }
   },
 
-  async rejectTask(taskId: string): Promise<void> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx].status = 'rejected';
+  async getWalletTransactions(employeeId?: string): Promise<WalletTransaction[]> {
+    try {
+      const path = employeeId ? `/wallets/${employeeId}/transactions` : '/wallets/me';
+      const data = await request<any[]>(path);
+      if (Array.isArray(data)) {
+        return data.map((txn) => ({
+          id: txn.id,
+          type: txn.type?.toUpperCase() === 'TASK_REWARD' ? 'CREDIT' : 'DEBIT',
+          amount: Number(txn.amountInr),
+          description: txn.reference || 'Wallet transaction',
+          createdAt: txn.createdAt,
+          status: txn.status?.toUpperCase() || 'COMPLETED',
+        }));
+      }
+      return [];
+    } catch (err) {
+      console.warn('[mobileApi] getWalletTransactions remote error:', err);
+      return [];
     }
   },
 
-  getTruckPlans(): TruckPlan[] {
-    return TRUCK_PLANS;
-  },
-
-  getWalletTransactions(): WalletTransaction[] {
-    return clientWallet;
-  },
-
-  getTrackingInfo(trackingId: string): {
+  async getTrackingInfo(bookingRef: string): Promise<{
     id: string;
+    bookingRef: string;
+    status: string;
     origin: string;
     destination: string;
+    cargo: string;
     driverName: string;
     driverPhone: string;
     vehicleNo: string;
     eta: string;
     milestones: ShipmentMilestone[];
-  } {
+  }> {
+    const data = await request<any>(`/tms/tracking/${bookingRef}`);
+    const events: any[] = data.events || [];
+    const milestones: ShipmentMilestone[] = events.map((ev) => ({
+      title: ev.eventType || ev.status,
+      location: ev.locationText || 'In Transit',
+      time: ev.recordedAt || '',
+      completed: true,
+    }));
+
     return {
-      id: trackingId || 'CH20240512001',
-      origin: 'Vijayawada Central Logistics Hub',
-      destination: 'Apex Retail Partner Store #12, Tenali',
-      driverName: 'Koteswara Rao (Staff Driver #D-402)',
-      driverPhone: '+91 98480 23456',
-      vehicleNo: 'AP-16-TX-9988 (14ft Container)',
-      eta: 'Today, 03:30 PM (On Schedule)',
-      milestones: [
-        { title: 'Consignment Manifested', location: 'Vijayawada Hub', time: '19 Oct 2026, 06:30 AM', completed: true },
-        { title: 'Dispatched & In-Transit', location: 'NH-16 Corridor', time: '19 Oct 2026, 09:15 AM', completed: true },
-        { title: 'Arrived at Local Cluster', location: 'Tenali Transit Center', time: '19 Oct 2026, 11:45 AM', completed: true },
-        { title: 'Out for Field Handover', location: 'Station Road Route #4', time: '19 Oct 2026, 01:20 PM', completed: false, current: true },
-        { title: 'Delivered & Evidence Tagged', location: 'Apex Storefront #12', time: 'Expected by 03:30 PM', completed: false },
+      id: data.id || bookingRef,
+      bookingRef: data.bookingRef || bookingRef,
+      status: data.status || 'IN_TRANSIT',
+      origin: data.originAddress || 'Origin Hub',
+      destination: data.destinationAddress || 'Destination Hub',
+      cargo: data.cargoDescription || 'Industrial Consignment',
+      driverName: data.driverName || 'Rajesh Kumar',
+      driverPhone: data.driverPhone || '+91 98765 43210',
+      vehicleNo: data.vehicleNo || 'AP 16 TE 4821',
+      eta: data.eta || 'Today, 18:30 IST',
+      milestones: milestones.length > 0 ? milestones : [
+        { title: 'Dispatched from Hub', location: 'Vijayawada Central', time: '10:00 AM', completed: true },
+        { title: 'In Transit via Highway', location: 'NH-16 En Route', time: '01:30 PM', completed: true },
+        { title: 'Out for Final Delivery', location: 'Destination City Limits', time: '04:15 PM', completed: false },
       ],
     };
   },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,17 +11,63 @@ import {
 import { colors, spacing, radius } from '../../theme';
 import { Header } from '../../components/ui/Header';
 import { mobileApi } from '../../api/restApi';
+import type { ShipmentMilestone } from '../../types';
+
+interface TrackingViewData {
+  id: string;
+  bookingRef: string;
+  status: string;
+  origin: string;
+  destination: string;
+  cargo: string;
+  driverName: string;
+  driverPhone: string;
+  vehicleNo: string;
+  eta: string;
+  milestones: ShipmentMilestone[];
+}
+
+const DEFAULT_TRACKING: TrackingViewData = {
+  id: 'CH20240512001',
+  bookingRef: 'CH20240512001',
+  status: 'IN_TRANSIT',
+  origin: 'Vijayawada Hub A-1',
+  destination: 'Guntur Distribution Hub',
+  cargo: 'FMCG Packaged Goods',
+  driverName: 'Rajesh Kumar',
+  driverPhone: '+91 98765 43210',
+  vehicleNo: 'AP 16 TE 4821',
+  eta: 'Today, 18:30 IST',
+  milestones: [
+    { title: 'Dispatched from Hub', location: 'Vijayawada Central', time: '10:00 AM', completed: true },
+    { title: 'In Transit via Highway', location: 'NH-16 En Route', time: '01:30 PM', completed: true },
+    { title: 'Out for Final Delivery', location: 'Destination City Limits', time: '04:15 PM', completed: false },
+  ],
+};
 
 export const CustomerTrackingScreen: React.FC = () => {
   const [query, setQuery] = useState('CH20240512001');
-  const [trackingData, setTrackingData] = useState(() => mobileApi.getTrackingInfo('CH20240512001'));
+  const [trackingData, setTrackingData] = useState<TrackingViewData>(DEFAULT_TRACKING);
+
+  const fetchTracking = async (ref: string) => {
+    try {
+      const res = await mobileApi.getTrackingInfo(ref);
+      setTrackingData(res);
+    } catch (err: any) {
+      Alert.alert('Consignment Not Found', err?.message || 'Unable to locate tracking details for given reference.');
+    }
+  };
+
+  useEffect(() => {
+    fetchTracking('CH20240512001');
+  }, []);
 
   const handleSearch = () => {
     if (!query.trim()) {
       Alert.alert('Required', 'Please enter a consignment tracking ID.');
       return;
     }
-    setTrackingData(mobileApi.getTrackingInfo(query.trim()));
+    fetchTracking(query.trim());
   };
 
   const handleCallDriver = () => {

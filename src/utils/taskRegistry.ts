@@ -1,31 +1,17 @@
+/**
+ * DEPRECATED: Client task registry previously used for local mock simulation.
+ * Real field tasks are persisted and retrieved authoritatively via PostgreSQL and Spring Boot REST API.
+ */
 import type { Task } from '@/types';
 
-const TASKS_KEY = 'chasehorse_stored_tasks';
-
 export function getStoredTasks(): Task[] {
-  try {
-    const raw = localStorage.getItem(TASKS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return [];
 }
 
-export function saveStoredTask(task: Task): void {
-  try {
-    const list = getStoredTasks().filter((t) => t.id !== task.id);
-    list.unshift(task);
-    localStorage.setItem(TASKS_KEY, JSON.stringify(list));
-  } catch (err) {
-    console.warn('[TaskRegistry] Failed to save task:', err);
-  }
+export function saveStoredTask(_task: Task): void {
+  // Production security: no-op; all tasks persisted to server DB
 }
 
-export function deleteStoredTask(taskId: string): void {
-  try {
-    const list = getStoredTasks().filter((t) => t.id !== taskId);
-    localStorage.setItem(TASKS_KEY, JSON.stringify(list));
-  } catch (err) {
-    console.warn('[TaskRegistry] Failed to delete task:', err);
-  }
+export function deleteStoredTask(_taskId: string): void {
+  // Production security: no-op
 }

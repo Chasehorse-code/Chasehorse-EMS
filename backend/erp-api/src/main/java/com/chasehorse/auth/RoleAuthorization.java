@@ -3,6 +3,7 @@ package com.chasehorse.auth;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
@@ -36,5 +37,30 @@ public class RoleAuthorization {
             subject
         );
         return roles.stream().map(role -> role.toUpperCase(Locale.ROOT)).anyMatch(allowed::contains);
+    }
+
+    public UUID getUserId(Authentication authentication) {
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) return null;
+        String subject = jwtAuth.getToken().getSubject();
+        return (subject != null && !subject.isBlank()) ? UUID.fromString(subject) : null;
+    }
+
+    public boolean isOwnerOrHasAny(Authentication authentication, java.util.UUID resourceOwnerId, String... elevatedRoles) {
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) return false;
+        String subject = jwtAuth.getToken().getSubject();
+        if (subject == null || subject.isBlank()) return false;
+        if (resourceOwnerId != null && subject.equalsIgnoreCase(resourceOwnerId.toString())) {
+            return true;
+        }
+        return hasAny(authentication, elevatedRoles);
+    }
+
+    public java.util.List<String> getRoles(String userId) {
+        if (userId == null || userId.isBlank()) return java.util.List.of();
+        return jdbc.query(
+            "select role from app_role_assignments where user_id = cast(? as uuid)",
+            (rs, rowNum) -> rs.getString("role"),
+            userId
+        );
     }
 }

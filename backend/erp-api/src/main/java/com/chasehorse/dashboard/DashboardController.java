@@ -15,20 +15,40 @@ import java.util.Map;
 public class DashboardController {
     private final JdbcTemplate jdbc;
 
-    public DashboardController(JdbcTemplate jdbc) {
+    private final com.chasehorse.auth.RoleAuthorization roleAuth;
+
+    public DashboardController(JdbcTemplate jdbc, com.chasehorse.auth.RoleAuthorization roleAuth) {
         this.jdbc = jdbc;
+        this.roleAuth = roleAuth;
     }
 
     @GetMapping("/stats")
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'CUSTOMER')")
-    public Map<String, Object> getStats(@RequestParam(required = false) String customerId) {
+    public Map<String, Object> getStats(
+        @RequestParam(required = false) String customerId,
+        @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.jwt.Jwt jwt
+    ) {
+        java.util.UUID actorId = java.util.UUID.fromString(jwt.getSubject());
+        java.util.List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        boolean isCustomerOnly = roles.stream().anyMatch(r -> r.equalsIgnoreCase("CUSTOMER"))
+            && roles.stream().noneMatch(r -> r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("MANAGER") || r.equalsIgnoreCase("OPERATIONS"));
+
         Map<String, Object> stats = new LinkedHashMap<>();
 
         // Task counts by status
-        var taskCounts = jdbc.query("""
-            SELECT status, COUNT(*) as cnt FROM tasks GROUP BY status
-            """,
-            (rs, n) -> Map.entry(rs.getString("status"), rs.getInt("cnt")));
+        String taskSql = "SELECT status, COUNT(*) as cnt FROM tasks ";
+        Object[] params = new Object[]{};
+        if (isCustomerOnly) {
+            taskSql += "WHERE customer_id = ? ";
+            params = new Object[]{actorId};
+        } else if (customerId != null && !customerId.isBlank()) {
+            taskSql += "WHERE customer_id = ? ";
+            params = new Object[]{java.util.UUID.fromString(customerId)};
+        }
+        taskSql += "GROUP BY status";
+
+        var taskCounts = jdbc.query(taskSql,
+            (rs, n) -> Map.entry(rs.getString("status"), rs.getInt("cnt")), params);
 
         Map<String, Integer> byStatus = new LinkedHashMap<>();
         int total = 0, open = 0, inProgress = 0, awaitingReview = 0, approved = 0;
@@ -50,20 +70,26 @@ public class DashboardController {
         stats.put("approvedTotal", approved);
         stats.put("byStatus", byStatus);
 
-        // Active employees
-        Integer activeEmployees = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM app_profiles WHERE account_status = 'ACTIVE'", Integer.class);
-        stats.put("activeEmployees", activeEmployees != null ? activeEmployees : 0);
+        if (!isCustomerOnly) {
+            // Active employees
+            Integer activeEmployees = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM app_profiles WHERE account_status = 'ACTIVE'", Integer.class);
+            stats.put("activeEmployees", activeEmployees != null ? activeEmployees : 0);
 
-        // Pending employee approvals
-        Integer pendingApprovals = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM app_profiles WHERE account_status = 'PENDING'", Integer.class);
-        stats.put("pendingEmployeeApprovals", pendingApprovals != null ? pendingApprovals : 0);
+            // Pending employee approvals
+            Integer pendingApprovals = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM app_profiles WHERE account_status = 'PENDING'", Integer.class);
+            stats.put("pendingEmployeeApprovals", pendingApprovals != null ? pendingApprovals : 0);
 
-        // Pending ops approvals
-        Integer awaitingOps = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM task_approvals WHERE decision = 'PENDING'", Integer.class);
-        stats.put("awaitingOps", awaitingOps != null ? awaitingOps : 0);
+            // Pending ops approvals
+            Integer awaitingOps = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM task_approvals WHERE decision = 'PENDING'", Integer.class);
+            stats.put("awaitingOps", awaitingOps != null ? awaitingOps : 0);
+        } else {
+            stats.put("activeEmployees", 0);
+            stats.put("pendingEmployeeApprovals", 0);
+            stats.put("awaitingOps", 0);
+        }
 
         return stats;
     }

@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/employees")
 public class EmployeeController {
     private final JdbcTemplate jdbc;
+    private final com.chasehorse.auth.RoleAuthorization roleAuth;
 
-    public EmployeeController(JdbcTemplate jdbc) {
+    public EmployeeController(JdbcTemplate jdbc, com.chasehorse.auth.RoleAuthorization roleAuth) {
         this.jdbc = jdbc;
+        this.roleAuth = roleAuth;
     }
 
     public record EmployeeView(
@@ -94,9 +96,18 @@ public class EmployeeController {
 
         // 2. If a role is specified and status is ACTIVE, assign or update the role
         if (request.role() != null && !request.role().isBlank() && request.status() == AccountStatus.ACTIVE) {
-            String roleUpper = request.role().toUpperCase();
-            // Validate role
-            var validRoles = List.of("FIELD_WORKER", "DRIVER", "DISPATCHER", "WAREHOUSE_STAFF", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "MANAGER");
+            String roleUpper = request.role().toUpperCase().trim();
+            // Blueprint requirement: Elevated roles (ADMIN, MANAGER) can ONLY be assigned by an ADMIN
+            if ("ADMIN".equals(roleUpper) || "MANAGER".equals(roleUpper)) {
+                List<String> actorRoles = jwt != null ? roleAuth.getRoles(jwt.getSubject()) : List.of();
+                boolean isAdmin = actorRoles.stream().anyMatch(r -> r.equalsIgnoreCase("ADMIN"));
+                if (!isAdmin) {
+                    throw com.chasehorse.common.ApiException.forbidden("Only administrators may grant MANAGER or ADMIN privileges");
+                }
+            }
+
+            // Validate role against allowed taxonomy
+            var validRoles = List.of("FIELD_WORKER", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "MANAGER", "ADMIN", "PARTNER");
             if (validRoles.contains(roleUpper)) {
                 jdbc.update("""
                     INSERT INTO app_role_assignments (user_id, role, granted_by)

@@ -135,8 +135,8 @@ public class ChecklistController {
         for (var it : items) {
             jdbc.update("""
                 INSERT INTO checklist_items (id, template_id, label, required, requires_photo, sort_order)
-                VALUES (gen_random_uuid(), ?, ?, ?, ?, ?)
-                """, templateId, it.label(), it.required(), it.requiresPhoto(), order++);
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, UUID.randomUUID(), templateId, it.label(), it.required(), it.requiresPhoto(), order++);
         }
     }
 }

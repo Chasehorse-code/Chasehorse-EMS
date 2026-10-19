@@ -11,19 +11,12 @@ import type {
   ManagerDecisionStatus,
   NewTaskInput,
   Task,
-  TaskStatus,
   WalletAccount,
   WalletTransaction,
 } from '@/types';
 import type { Actor, ChaseHorseApi } from './contract';
 import { http } from './httpClient';
 import { haversineKm } from '@/utils/geo';
-import {
-  getStoredAccounts,
-  accountToEmployee,
-  updateStoredAccount,
-} from '@/utils/accountRegistry';
-import { getStoredTasks, saveStoredTask } from '@/utils/taskRegistry';
 
 const EMPTY_DASHBOARD_STATS: DashboardStats = {
   totalTasks: 0,
@@ -47,85 +40,6 @@ const EMPTY_DASHBOARD_STATS: DashboardStats = {
   completionTrend: [],
 };
 
-const DEFAULT_FIELD_TASKS: Task[] = [
-  {
-    id: 'TSK-FLD-8821',
-    title: 'FMCG Retail Shelf Facing & Planogram Audit',
-    description: 'Verify shelf placement, brand facing count, and promotional standee compliance at primary supermarket.',
-    category: 'Shelf audit',
-    status: 'assigned',
-    priority: 'high',
-    customerId: 'cust-retail',
-    location: {
-      lat: 16.24184,
-      lng: 80.6448,
-      area: 'Tenali Urban, Chenchupeta',
-      address: 'Main Bazaar Road, Chenchupeta, Tenali, Andhra Pradesh',
-    },
-    dueAt: new Date(Date.now() + 86400000).toISOString(),
-    createdAt: new Date().toISOString(),
-    rewardInr: 450,
-    checklistTemplateId: 'chk-shelf',
-  },
-  {
-    id: 'TSK-FLD-8822',
-    title: 'Fintech Merchant QR Standee & Soundbox Verification',
-    description: 'Inspect active merchant QR standee, sticker durability, and soundbox battery functionality.',
-    category: 'Site survey',
-    status: 'open',
-    priority: 'urgent',
-    customerId: 'cust-fintech',
-    location: {
-      lat: 16.2389,
-      lng: 80.6481,
-      area: 'Station Road, Tenali',
-      address: 'Near Old Bus Stand, Tenali, Andhra Pradesh',
-    },
-    dueAt: new Date(Date.now() + 86400000).toISOString(),
-    createdAt: new Date().toISOString(),
-    rewardInr: 350,
-    checklistTemplateId: 'chk-qr',
-  },
-  {
-    id: 'TSK-FLD-8823',
-    title: 'Telecom Fiber DP Box & Pole Physical Tagging',
-    description: 'Inspect roadside optical distribution box, latch seal, and GPS coordinate tagging.',
-    category: 'Signage check',
-    status: 'open',
-    priority: 'normal',
-    customerId: 'cust-telco',
-    location: {
-      lat: 16.2445,
-      lng: 80.6412,
-      area: 'Auto Nagar, Tenali',
-      address: 'Industrial Estate Phase 1, Tenali, Andhra Pradesh',
-    },
-    dueAt: new Date(Date.now() + 86400000).toISOString(),
-    createdAt: new Date().toISOString(),
-    rewardInr: 600,
-    checklistTemplateId: 'chk-telecom',
-  },
-  {
-    id: 'TSK-FLD-8824',
-    title: 'Brand Out-of-Home (OOH) Billboard Lighting Check',
-    description: 'Evening inspection of highway billboard lighting, banner stretching, and structural safety.',
-    category: 'Signage check',
-    status: 'open',
-    priority: 'normal',
-    customerId: 'cust-media',
-    location: {
-      lat: 16.2512,
-      lng: 80.6398,
-      area: 'Bypass Junction, Tenali',
-      address: 'Tenali-Guntur Highway Bypass, Andhra Pradesh',
-    },
-    dueAt: new Date(Date.now() + 86400000).toISOString(),
-    createdAt: new Date().toISOString(),
-    rewardInr: 500,
-    checklistTemplateId: 'chk-ooh',
-  },
-];
-
 /**
  * Production REST implementation of ChaseHorseApi.
  * Communicates with the Spring Boot backend (`/api/v1/*`).
@@ -133,60 +47,40 @@ const DEFAULT_FIELD_TASKS: Task[] = [
 export const restApi: ChaseHorseApi = {
   async getDashboardStats(scope?: { customerId?: string }): Promise<DashboardStats> {
     try {
-      const data = await http<DashboardStats>('/dashboard/stats', {
+      const data = await http<any>('/dashboard/stats', {
         query: { customerId: scope?.customerId },
       });
-      if (data && data.totalTasks > 0) return data;
-    } catch (err) {
-      console.warn('[restApi] getDashboardStats remote unavailable, computing from task records:', err);
-    }
-
-    try {
-      const tasks = await this.listTasks(scope);
-      const byStatus: Record<TaskStatus, number> = {
-        open: 0,
-        assigned: 0,
-        in_progress: 0,
-        submitted: 0,
-        in_review: 0,
-        approved: 0,
-        rejected: 0,
-        cancelled: 0,
-      };
-      for (const t of tasks) {
-        if (byStatus[t.status] !== undefined) {
-          byStatus[t.status]++;
-        } else {
-          byStatus.open++;
-        }
-      }
-
-      const openTasks = byStatus.open;
-      const inProgress = byStatus.assigned + byStatus.in_progress;
-      const awaitingReview = byStatus.submitted + byStatus.in_review;
-      const approvedTotal = byStatus.approved;
-
       return {
-        totalTasks: tasks.length,
-        openTasks,
-        inProgress,
-        awaitingReview,
-        approvedTotal,
-        activeEmployees: 18,
-        pendingEmployeeApprovals: 2,
-        awaitingOps: awaitingReview,
-        byStatus,
+        totalTasks: data.totalTasks ?? 0,
+        openTasks: data.openTasks ?? 0,
+        inProgress: data.inProgress ?? 0,
+        awaitingReview: data.awaitingReview ?? 0,
+        approvedTotal: data.approvedTotal ?? 0,
+        activeEmployees: data.activeEmployees ?? 0,
+        pendingEmployeeApprovals: data.pendingEmployeeApprovals ?? 0,
+        awaitingOps: data.awaitingOps ?? 0,
+        byStatus: {
+          open: data.byStatus?.OPEN ?? 0,
+          assigned: data.byStatus?.ASSIGNED ?? 0,
+          in_progress: data.byStatus?.IN_PROGRESS ?? 0,
+          submitted: data.byStatus?.SUBMITTED ?? 0,
+          in_review: data.byStatus?.IN_REVIEW ?? 0,
+          approved: data.byStatus?.APPROVED ?? 0,
+          rejected: data.byStatus?.REJECTED ?? 0,
+          cancelled: data.byStatus?.CANCELLED ?? 0,
+        },
         completionTrend: [
-          { day: 'Mon', created: 4, completed: 3 },
-          { day: 'Tue', created: 6, completed: 5 },
-          { day: 'Wed', created: 5, completed: 4 },
-          { day: 'Thu', created: 7, completed: 6 },
-          { day: 'Fri', created: 8, completed: 7 },
-          { day: 'Sat', created: 5, completed: 5 },
-          { day: 'Sun', created: 3, completed: 2 },
+          { day: 'Mon', created: 0, completed: 0 },
+          { day: 'Tue', created: 0, completed: 0 },
+          { day: 'Wed', created: 0, completed: 0 },
+          { day: 'Thu', created: 0, completed: 0 },
+          { day: 'Fri', created: 0, completed: 0 },
+          { day: 'Sat', created: 0, completed: 0 },
+          { day: 'Sun', created: 0, completed: 0 },
         ],
       };
-    } catch {
+    } catch (err) {
+      console.warn('[restApi] getDashboardStats error:', err);
       return EMPTY_DASHBOARD_STATS;
     }
   },
@@ -202,13 +96,12 @@ export const restApi: ChaseHorseApi = {
   },
 
   async listTasks(scope?: { customerId?: string }): Promise<Task[]> {
-    let tasks: Task[] = [];
     try {
       const data = await http<any[]>('/tasks', {
         query: { customerId: scope?.customerId },
       });
-      if (Array.isArray(data) && data.length > 0) {
-        tasks = data.map((t) => ({
+      if (Array.isArray(data)) {
+        return data.map((t) => ({
           id: t.id,
           title: t.title,
           description: t.description || '',
@@ -222,42 +115,18 @@ export const restApi: ChaseHorseApi = {
             area: t.locationArea || t.areaKey || 'Operational Area',
             address: t.locationAddress || t.address || 'Field Location',
           },
-          dueAt: t.dueAt || new Date(Date.now() + 86400000).toISOString(),
+          dueAt: t.dueAt || new Date().toISOString(),
           createdAt: t.createdAt || new Date().toISOString(),
           rewardInr: Number(t.rewardAmount) || 0,
           assigneeId: t.assignedTo,
           checklistTemplateId: t.checklistTemplateId || 'chk-shelf',
         }));
-      } else {
-        tasks = [...DEFAULT_FIELD_TASKS];
       }
+      return [];
     } catch (err) {
-      console.warn('[restApi] listTasks remote unavailable, merging stored tasks:', err);
-      tasks = [...DEFAULT_FIELD_TASKS];
+      console.warn('[restApi] listTasks remote error:', err);
+      return [];
     }
-
-    // Merge in any locally created tasks
-    const stored = getStoredTasks();
-    for (const st of stored) {
-      const existingIdx = tasks.findIndex((t) => t.id === st.id);
-      if (existingIdx >= 0) {
-        tasks[existingIdx] = st;
-      } else {
-        tasks.unshift(st);
-      }
-    }
-
-    if (scope?.customerId) {
-      return tasks.filter(
-        (t) =>
-          !t.customerId ||
-          t.customerId === scope.customerId ||
-          t.customerId === 'cust-apex' ||
-          t.customerId === 'cust-retail',
-      );
-    }
-
-    return tasks;
   },
 
   async listNearbyTasks(lat: number, lng: number, radiusKm: number = 25): Promise<Task[]> {
@@ -272,69 +141,40 @@ export const restApi: ChaseHorseApi = {
   },
 
   async createTask(input: NewTaskInput): Promise<Task> {
-    try {
-      const res = await http<any>('/tasks', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: input.title,
-          description: input.description,
-          rewardAmount: input.rewardInr,
-          checklistTemplateId: input.checklistTemplateId,
-          areaKey: input.areaKey,
-          address: input.address,
-          category: input.category,
-          priority: input.priority,
-          dueAt: input.dueAt,
-        }),
-      });
-      const created: Task = {
-        id: res.id,
-        title: res.title,
-        description: res.description,
-        category: input.category,
-        status: (res.status?.toLowerCase() || 'open') as any,
-        priority: input.priority,
-        customerId: input.customerId,
-        location: {
-          lat: Number(res.locationLat) || input.locationLat || 16.2418,
-          lng: Number(res.locationLng) || input.locationLng || 80.6448,
-          area: input.areaKey,
-          address: input.address,
-        },
-        dueAt: input.dueAt,
-        createdAt: res.createdAt || new Date().toISOString(),
-        rewardInr: Number(res.rewardAmount) || input.rewardInr,
-        assigneeId: res.assignedTo,
-        checklistTemplateId: input.checklistTemplateId,
-      };
-      saveStoredTask(created);
-      return created;
-    } catch (err) {
-      console.warn('[restApi] Backend /tasks POST unavailable, persisting to client task registry:', err);
-      const generatedId = `TSK-${Math.floor(1000 + Math.random() * 9000)}`;
-      const fallbackTask: Task = {
-        id: generatedId,
+    const res = await http<any>('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({
         title: input.title,
         description: input.description,
-        category: input.category,
-        status: 'open',
-        priority: input.priority,
-        customerId: input.customerId,
-        location: {
-          lat: input.locationLat || 16.2418,
-          lng: input.locationLng || 80.6448,
-          area: input.areaKey || 'Tenali Urban, Andhra Pradesh',
-          address: input.address || 'Field Location',
-        },
-        dueAt: input.dueAt,
-        createdAt: new Date().toISOString(),
-        rewardInr: input.rewardInr,
-        assigneeId: input.assigneeId,
+        rewardAmount: input.rewardInr,
         checklistTemplateId: input.checklistTemplateId,
-      };
-      saveStoredTask(fallbackTask);
-      return fallbackTask;
-    }
+        areaKey: input.areaKey,
+        address: input.address,
+        category: input.category,
+        priority: input.priority,
+        dueAt: input.dueAt,
+      }),
+    });
+    return {
+      id: res.id,
+      title: res.title,
+      description: res.description,
+      category: input.category,
+      status: (res.status?.toLowerCase() || 'open') as any,
+      priority: input.priority,
+      customerId: res.customerId || input.customerId,
+      location: {
+        lat: Number(res.locationLat) || input.locationLat || 16.2418,
+        lng: Number(res.locationLng) || input.locationLng || 80.6448,
+        area: input.areaKey,
+        address: input.address,
+      },
+      dueAt: input.dueAt,
+      createdAt: res.createdAt || new Date().toISOString(),
+      rewardInr: Number(res.rewardAmount) || input.rewardInr,
+      assigneeId: res.assignedTo,
+      checklistTemplateId: input.checklistTemplateId,
+    };
   },
 
   async assignTask(taskId: string, employeeId: string): Promise<Task> {
@@ -365,16 +205,15 @@ export const restApi: ChaseHorseApi = {
   },
 
   async acceptTask(taskId: string): Promise<Task> {
-    const res = await http<any>(`/tasks/${taskId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'IN_PROGRESS' }),
+    const res = await http<any>(`/tasks/${taskId}/accept`, {
+      method: 'POST',
     });
     return {
       id: res.id,
       title: res.title,
       description: res.description,
       category: res.category || 'Shelf audit',
-      status: 'in_progress',
+      status: (res.status?.toLowerCase() || 'in_progress') as any,
       priority: res.priority || 'normal',
       customerId: res.customerId || res.createdBy,
       location: {
@@ -392,11 +231,10 @@ export const restApi: ChaseHorseApi = {
   },
 
   async listEmployees(): Promise<Employee[]> {
-    let list: Employee[] = [];
     try {
       const data = await http<any[]>('/employees');
       if (Array.isArray(data)) {
-        list = data.map((e) => {
+        return data.map((e) => {
           const roles = e.roles || [];
           const isManager = roles.includes('MANAGER') || roles.includes('OPERATIONS');
           return {
@@ -417,22 +255,11 @@ export const restApi: ChaseHorseApi = {
           };
         });
       }
+      return [];
     } catch (err) {
       console.warn('[restApi] listEmployees error:', err);
+      return [];
     }
-
-    // Merge registered employee accounts from local account registry
-    const stored = getStoredAccounts()
-      .filter((a) => a.accountType === 'EMPLOYEE')
-      .map(accountToEmployee);
-
-    for (const emp of stored) {
-      if (!list.some((existing) => existing.email.toLowerCase() === emp.email.toLowerCase())) {
-        list.unshift(emp);
-      }
-    }
-
-    return list;
   },
 
   async setEmployeeApproval(
@@ -443,54 +270,29 @@ export const restApi: ChaseHorseApi = {
     const backendStatus = status === 'approved' ? 'ACTIVE' : status === 'rejected' ? 'REJECTED' : 'SUSPENDED';
     const assignedRole = subRole === 'manager' ? 'MANAGER' : 'FIELD_WORKER';
 
-    // Update stored local registry if present
-    updateStoredAccount(employeeId, {
-      accountStatus: status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'suspended',
-      subRole: subRole || 'field_worker',
+    const res = await http<any>(`/employees/${employeeId}/approval`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: backendStatus,
+        role: assignedRole,
+      }),
     });
-
-    try {
-      const res = await http<any>(`/employees/${employeeId}/approval`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: backendStatus,
-          role: assignedRole,
-        }),
-      });
-      return {
-        id: res.id,
-        name: res.displayName,
-        email: res.email || `${res.id.slice(0, 8)}@chasehorse.com`,
-        phone: res.phone || '+91 98000 00000',
-        region: res.region || 'Operational Region',
-        skills: [],
-        approvalStatus: status,
-        subRole: subRole || 'field_worker',
-        availability: 'available',
-        location: { lat: 16.24184, lng: 80.6448, area: res.region || 'Region' },
-        joinedAt: res.createdAt,
-        tasksCompleted: 0,
-        rating: 5.0,
-        documentsVerified: status === 'approved',
-      };
-    } catch {
-      return {
-        id: employeeId,
-        name: 'Field Worker',
-        email: `${employeeId}@chasehorse.com`,
-        phone: '+91 98000 00000',
-        region: 'Tenali / Guntur',
-        skills: [],
-        approvalStatus: status,
-        subRole: subRole || 'field_worker',
-        availability: 'available',
-        location: { lat: 16.24184, lng: 80.6448, area: 'Tenali' },
-        joinedAt: new Date().toISOString(),
-        tasksCompleted: 0,
-        rating: 5.0,
-        documentsVerified: status === 'approved',
-      };
-    }
+    return {
+      id: res.id,
+      name: res.displayName,
+      email: res.email || `${res.id.slice(0, 8)}@chasehorse.com`,
+      phone: res.phone || '+91 98000 00000',
+      region: res.region || 'Operational Region',
+      skills: [],
+      approvalStatus: status,
+      subRole: subRole || 'field_worker',
+      availability: 'available',
+      location: { lat: 16.24184, lng: 80.6448, area: res.region || 'Region' },
+      joinedAt: res.createdAt,
+      tasksCompleted: 0,
+      rating: 5.0,
+      documentsVerified: status === 'approved',
+    };
   },
 
   async listChecklists(): Promise<ChecklistTemplate[]> {

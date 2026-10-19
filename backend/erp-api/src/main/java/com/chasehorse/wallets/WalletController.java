@@ -24,9 +24,12 @@ public class WalletController {
     private final JdbcTemplate jdbc;
     private final AuditService audit;
 
-    public WalletController(JdbcTemplate jdbc, AuditService audit) {
+    private final com.chasehorse.auth.RoleAuthorization roleAuth;
+
+    public WalletController(JdbcTemplate jdbc, AuditService audit, com.chasehorse.auth.RoleAuthorization roleAuth) {
         this.jdbc = jdbc;
         this.audit = audit;
+        this.roleAuth = roleAuth;
     }
 
     public record WalletAccountView(
@@ -60,9 +63,34 @@ public class WalletController {
         );
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS', 'EMPLOYEE', 'FIELD_WORKER')")
+    public WalletAccountView getMyWallet(@AuthenticationPrincipal Jwt jwt) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        BigDecimal balance = jdbc.queryForObject("""
+            SELECT COALESCE(SUM(amount), 0)
+            FROM wallet_ledger
+            WHERE user_id = ?
+            """, BigDecimal.class, actorId);
+
+        return new WalletAccountView(actorId, balance != null ? balance : BigDecimal.ZERO, BigDecimal.ZERO);
+    }
+
     @GetMapping("/{employeeId}/transactions")
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS', 'EMPLOYEE', 'FIELD_WORKER')")
-    public List<WalletTransactionView> listTransactions(@PathVariable UUID employeeId) {
+    public List<WalletTransactionView> listTransactions(
+        @PathVariable UUID employeeId,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        boolean isAdminOrOps = roles.stream().anyMatch(r ->
+            r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("OPERATIONS"));
+
+        if (!isAdminOrOps && !actorId.equals(employeeId)) {
+            throw com.chasehorse.common.ApiException.forbidden("You are only permitted to view your own wallet transactions");
+        }
+
         return jdbc.query("""
             SELECT id, user_id, entry_type, amount, created_at, description, task_id
             FROM wallet_ledger WHERE user_id = ?
