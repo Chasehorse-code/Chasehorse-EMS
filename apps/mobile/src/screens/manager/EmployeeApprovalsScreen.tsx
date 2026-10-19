@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { colors, spacing, radius } from '../../theme';
 import { Header } from '../../components/ui/Header';
@@ -13,19 +14,40 @@ import { useAuth } from '../../context/AuthContext';
 import type { UserProfile } from '../../types';
 
 export const EmployeeApprovalsScreen: React.FC = () => {
-  const { pendingAccounts, approveAccount, rejectAccount } = useAuth();
+  const { pendingAccounts, refreshPendingAccounts, approveAccount, rejectAccount } = useAuth();
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const handleApprove = (account: UserProfile) => {
-    approveAccount(account.id);
-    Alert.alert(
-      'Account Approved',
-      `Employee ${account.displayName} has been approved.\nTheir status is updated to ACTIVE and they can now accept field tasks in the ${account.region || 'Tenali'} cluster.`,
-    );
+  useEffect(() => {
+    refreshPendingAccounts().catch((err) => {
+      console.warn('[EmployeeApprovals] Failed to fetch pending accounts:', err);
+    });
+  }, [refreshPendingAccounts]);
+
+  const handleApprove = async (account: UserProfile) => {
+    setProcessingId(account.id);
+    try {
+      await approveAccount(account.id);
+      Alert.alert(
+        'Account Approved',
+        `Employee ${account.displayName} has been approved.\nTheir status is updated to ACTIVE on the server.`,
+      );
+    } catch {
+      Alert.alert('Approval Failed', 'Unable to approve account on server.');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
-  const handleReject = (account: UserProfile) => {
-    rejectAccount(account.id);
-    Alert.alert('Account Rejected', `Registration for ${account.displayName} has been rejected.`);
+  const handleReject = async (account: UserProfile) => {
+    setProcessingId(account.id);
+    try {
+      await rejectAccount(account.id);
+      Alert.alert('Account Rejected', `Registration for ${account.displayName} has been rejected.`);
+    } catch {
+      Alert.alert('Rejection Failed', 'Unable to reject account on server.');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   return (
@@ -68,13 +90,19 @@ export const EmployeeApprovalsScreen: React.FC = () => {
               </View>
 
               <View style={styles.actionsRow}>
-                <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(account)}>
-                  <Text style={styles.rejectText}>Reject ✕</Text>
-                </TouchableOpacity>
+                {processingId === account.id ? (
+                  <ActivityIndicator size="small" color={colors.blueAccent} style={{ flex: 1, paddingVertical: spacing.sm }} />
+                ) : (
+                  <>
+                    <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(account)} disabled={processingId !== null}>
+                      <Text style={styles.rejectText}>Reject ✕</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(account)}>
-                  <Text style={styles.approveText}>Approve Access ✓</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(account)} disabled={processingId !== null}>
+                      <Text style={styles.approveText}>Approve Access ✓</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </View>
           ))

@@ -36,11 +36,15 @@ import { EmployeeProfileScreen } from './src/screens/employee/EmployeeProfileScr
 import { ManagerReviewScreen } from './src/screens/manager/ManagerReviewScreen';
 import { EmployeeApprovalsScreen } from './src/screens/manager/EmployeeApprovalsScreen';
 
+// Admin Screens
+import { AdminDashboardScreen } from './src/screens/admin/AdminDashboardScreen';
+import { EmployeeDirectoryScreen } from './src/screens/admin/EmployeeDirectoryScreen';
+
 // Shared Components
 import { TaskDetailsModal } from './src/components/TaskDetailsModal';
 
 function MainAppNavigator() {
-  const { isAuthenticated, isPendingApproval, role } = useAuth();
+  const { isAuthenticated, isPendingApproval, role, signOut } = useAuth();
 
   // Auth navigation state
   const [authScreen, setAuthScreen] = useState<'login' | 'register_employee' | 'register_customer'>('login');
@@ -53,7 +57,10 @@ function MainAppNavigator() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   // Manager tab state
-  const [managerTab, setManagerTab] = useState<'review' | 'approvals'>('review');
+  const [managerTab, setManagerTab] = useState<'review' | 'approvals' | 'profile'>('review');
+
+  // Admin tab state
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'review' | 'approvals' | 'directory' | 'profile'>('dashboard');
 
   // Modal inspection state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -265,6 +272,7 @@ function MainAppNavigator() {
         <View style={styles.contentArea}>
           {managerTab === 'review' && <ManagerReviewScreen />}
           {managerTab === 'approvals' && <EmployeeApprovalsScreen />}
+          {managerTab === 'profile' && <EmployeeProfileScreen />}
         </View>
 
         {/* Manager Bottom Navigation Bar */}
@@ -285,7 +293,17 @@ function MainAppNavigator() {
           >
             <Text style={styles.navIcon}>🛡️</Text>
             <Text style={[styles.navLabel, managerTab === 'approvals' && styles.navLabelActive]}>
-              Account Approvals
+              Approvals
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navItem, managerTab === 'profile' && styles.navItemActive]}
+            onPress={() => setManagerTab('profile')}
+          >
+            <Text style={styles.navIcon}>👤</Text>
+            <Text style={[styles.navLabel, managerTab === 'profile' && styles.navLabelActive]}>
+              Profile
             </Text>
           </TouchableOpacity>
         </View>
@@ -293,7 +311,100 @@ function MainAppNavigator() {
     );
   }
 
-  return null;
+  // 6. Admin Enterprise Portal Flow
+  if (role === 'admin') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.contentArea}>
+          {adminTab === 'dashboard' && (
+            <AdminDashboardScreen
+              onNavigateToReview={() => setAdminTab('review')}
+              onNavigateToApprovals={() => setAdminTab('approvals')}
+              onNavigateToDirectory={() => setAdminTab('directory')}
+            />
+          )}
+          {adminTab === 'review' && <ManagerReviewScreen />}
+          {adminTab === 'approvals' && <EmployeeApprovalsScreen />}
+          {adminTab === 'directory' && <EmployeeDirectoryScreen />}
+          {adminTab === 'profile' && <EmployeeProfileScreen />}
+        </View>
+
+        {/* Admin Bottom Navigation Bar */}
+        <View style={styles.bottomNav}>
+          <TouchableOpacity
+            style={[styles.navItem, adminTab === 'dashboard' && styles.navItemActive]}
+            onPress={() => setAdminTab('dashboard')}
+          >
+            <Text style={styles.navIcon}>📊</Text>
+            <Text style={[styles.navLabel, adminTab === 'dashboard' && styles.navLabelActive]}>
+              Overview
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navItem, adminTab === 'review' && styles.navItemActive]}
+            onPress={() => setAdminTab('review')}
+          >
+            <Text style={styles.navIcon}>📋</Text>
+            <Text style={[styles.navLabel, adminTab === 'review' && styles.navLabelActive]}>
+              Review
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navItem, adminTab === 'approvals' && styles.navItemActive]}
+            onPress={() => setAdminTab('approvals')}
+          >
+            <Text style={styles.navIcon}>🛡️</Text>
+            <Text style={[styles.navLabel, adminTab === 'approvals' && styles.navLabelActive]}>
+              Approvals
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navItem, adminTab === 'directory' && styles.navItemActive]}
+            onPress={() => setAdminTab('directory')}
+          >
+            <Text style={styles.navIcon}>👥</Text>
+            <Text style={[styles.navLabel, adminTab === 'directory' && styles.navLabelActive]}>
+              Directory
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navItem, adminTab === 'profile' && styles.navItemActive]}
+            onPress={() => setAdminTab('profile')}
+          >
+            <Text style={styles.navIcon}>⚙️</Text>
+            <Text style={[styles.navLabel, adminTab === 'profile' && styles.navLabelActive]}>
+              Profile
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Fallback for unexpected or unassigned role
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={[styles.contentArea, { justifyContent: 'center', alignItems: 'center', padding: spacing.xl }]}>
+        <Text style={{ fontSize: 40, marginBottom: spacing.md }}>🔒</Text>
+        <Text style={{ color: colors.textLight, fontSize: 18, fontWeight: '700', marginBottom: spacing.sm }}>
+          Access Under Configuration
+        </Text>
+        <Text style={{ color: colors.textLightMuted, fontSize: 13, textAlign: 'center', marginBottom: spacing.xl }}>
+          Your account role ({role || 'unassigned'}) does not have an active mobile portal layout assigned. Please contact your system administrator.
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: colors.surfaceDark, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: radius.md }}
+          onPress={signOut}
+        >
+          <Text style={{ color: colors.textLight, fontWeight: '700' }}>Sign Out</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 export default function App() {

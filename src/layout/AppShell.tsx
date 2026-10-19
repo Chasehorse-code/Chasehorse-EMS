@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   Menu,
   ShieldAlert,
@@ -23,7 +23,7 @@ import { AccessDenied } from '@/pages/AccessDenied';
 
 export function AppShell() {
   const { role, actorName } = useRole();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -34,6 +34,31 @@ export function AppShell() {
 
   const mainRef = useRef<HTMLElement>(null);
   const firstRender = useRef(true);
+
+  // Fail closed: enforce authentication and approved status for all protected routes
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#090d16',
+        color: '#60a5fa',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}>
+        Verifying authenticated credentials...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (profile && profile.accountStatus?.toUpperCase() === 'PENDING') {
+    return <Navigate to="/pending-approval" replace />;
+  }
 
   // Use specialized enterprise customer navigation when role is customer
   const items = role === 'customer' ? customerNavItems : navItems.filter((n) => n.roles.includes(role));

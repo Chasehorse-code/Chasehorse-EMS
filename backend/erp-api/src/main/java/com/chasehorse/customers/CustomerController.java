@@ -26,8 +26,8 @@ public class CustomerController {
         return jdbc.query("""
             SELECT p.id, p.display_name, COALESCE(p.phone, p.email, 'contact@enterprise.com') AS contact
             FROM app_profiles p
-            LEFT JOIN app_role_assignments r ON p.id = r.user_id
-            WHERE r.role = 'CUSTOMER' OR r.role IS NULL
+            JOIN app_role_assignments r ON p.id = r.user_id
+            WHERE r.role = 'CUSTOMER'
             LIMIT 100
             """,
             (rs, n) -> new CustomerView(

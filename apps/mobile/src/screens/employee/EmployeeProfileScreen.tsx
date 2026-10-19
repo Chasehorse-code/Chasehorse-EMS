@@ -15,10 +15,10 @@ export const EmployeeProfileScreen: React.FC = () => {
         <View style={styles.card}>
           <View style={styles.cardTop}>
             <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>SK</Text>
+              <Text style={styles.avatarText}>{(user?.displayName || 'FW').slice(0, 2).toUpperCase()}</Text>
             </View>
             <View style={{ flex: 1, marginLeft: spacing.md }}>
-              <Text style={styles.workerName}>{user?.displayName || 'Siva Krishna'}</Text>
+              <Text style={styles.workerName}>{user?.displayName || 'Field Operator'}</Text>
               <Text style={styles.workerRole}>On-Field Operations Associate</Text>
               <View style={styles.verifiedChip}>
                 <Text style={styles.verifiedText}>✓ VERIFIED FIELD OPERATOR</Text>
@@ -27,31 +27,31 @@ export const EmployeeProfileScreen: React.FC = () => {
           </View>
 
           <View style={styles.detailsBox}>
-            <Text style={styles.detailRow}>🆔 Employee ID: EMP-CH-4091</Text>
+            <Text style={styles.detailRow}>🆔 Employee ID: {user?.id ? `EMP-${user.id.slice(0, 8).toUpperCase()}` : 'EMP-PENDING'}</Text>
             <Text style={styles.detailRow}>📧 Email: {user?.email}</Text>
-            <Text style={styles.detailRow}>📱 Mobile: {user?.phone || '+91 98480 33445'}</Text>
-            <Text style={styles.detailRow}>📍 Cluster: {user?.region || 'Tenali Urban, Andhra Pradesh'}</Text>
+            <Text style={styles.detailRow}>📱 Mobile: {user?.phone || 'Not Provided'}</Text>
+            <Text style={styles.detailRow}>📍 Cluster: {user?.region || 'National Network'}</Text>
           </View>
         </View>
 
-        {/* Performance Metrics */}
+        {/* Operational Status */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>SLA PERFORMANCE RECORD</Text>
+          <Text style={styles.sectionTitle}>OPERATIONAL COMPLIANCE</Text>
 
           <View style={styles.metricsRow}>
             <View style={styles.metricItem}>
-              <Text style={styles.metricVal}>98.6%</Text>
-              <Text style={styles.metricLabel}>On-Time SLA</Text>
+              <Text style={styles.metricVal}>ACTIVE</Text>
+              <Text style={styles.metricLabel}>Account State</Text>
             </View>
 
             <View style={styles.metricItem}>
-              <Text style={styles.metricVal}>34</Text>
-              <Text style={styles.metricLabel}>Tasks Verified</Text>
+              <Text style={styles.metricVal}>VERIFIED</Text>
+              <Text style={styles.metricLabel}>Identity Tier</Text>
             </View>
 
             <View style={styles.metricItem}>
-              <Text style={styles.metricVal}>4.9 ★</Text>
-              <Text style={styles.metricLabel}>Quality Score</Text>
+              <Text style={styles.metricVal}>ONLINE</Text>
+              <Text style={styles.metricLabel}>GPS Dispatch</Text>
             </View>
           </View>
         </View>

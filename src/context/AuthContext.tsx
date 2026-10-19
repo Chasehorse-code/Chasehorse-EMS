@@ -9,13 +9,6 @@ import {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/config/supabase';
-import {
-  findStoredAccount,
-  getCachedSession,
-  saveStoredAccount,
-  setCachedSession,
-  type RegisteredAccount,
-} from '@/utils/accountRegistry';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -104,8 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) {
-        console.warn('[Auth] /me returned', res.status);
+        console.warn('[Auth] Backend /me returned status', res.status);
         setProfile(null);
+        setError(`Failed to retrieve profile: Server returned HTTP ${res.status}`);
         return null;
       }
       const data = await res.json();
@@ -122,10 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updatedAt: data.updatedAt,
       };
       setProfile(p);
+      setError(null);
       return p;
     } catch (err) {
-      console.warn('[Auth] Failed to fetch profile:', err);
+      console.warn('[Auth] Failed to fetch server profile:', err);
       setProfile(null);
+      setError('Unable to load user profile from server. Please check your connection.');
       return null;
     } finally {
       setProfileLoading(false);
@@ -134,28 +130,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* --- Listen for auth state changes ------------------------------ */
   useEffect(() => {
-    // Get initial session
+    // Get initial verified session from Supabase
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
-        setUser(s?.user ?? null);
-        if (s?.access_token) fetchProfile(s.access_token);
-      } else {
-        const cached = getCachedSession();
-        if (cached) {
-          setProfile(cached);
+        setUser(s.user ?? null);
+        if (s.access_token) {
+          fetchProfile(s.access_token);
         }
+      } else {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
       }
+      setLoading(false);
+    }).catch((err) => {
+      console.warn('[Auth] Failed to get session:', err);
+      setSession(null);
+      setUser(null);
+      setProfile(null);
       setLoading(false);
     });
 
     // Subscribe to changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, s) => {
+      async (_event, s) => {
         setSession(s);
         setUser(s?.user ?? null);
         if (s?.access_token) {
-          fetchProfile(s.access_token);
+          await fetchProfile(s.access_token);
         } else {
           setProfile(null);
         }
@@ -169,79 +172,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     setError(null);
-    try {
-      const { error: e } = await supabase.auth.signInWithPassword({ email, password });
-      if (e) throw e;
-    } catch (err: unknown) {
-      const norm = email.trim().toLowerCase();
-      const match = findStoredAccount(norm);
-      if (match && (!match.password || match.password === password)) {
-        console.info('[Auth] Authenticated via registered account:', match.email);
-        const p: UserProfile = {
-          id: match.id,
-          displayName: match.displayName,
-          email: match.email,
-          phone: match.phone || null,
-          avatarUrl: null,
-          region: match.region || null,
-          accountStatus: match.accountStatus,
-          roles: match.roles,
-          createdAt: match.createdAt,
-          updatedAt: match.createdAt,
-        };
-        setProfile(p);
-        setCachedSession(p);
-        return;
-      }
-      const msg = err instanceof Error ? err.message : 'Invalid credentials';
-      setError(msg);
-      throw err;
+    const { data, error: e } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (e) {
+      setError(e.message);
+      throw e;
     }
-  }, []);
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.user);
+      if (data.session.access_token) {
+        await fetchProfile(data.session.access_token);
+      }
+    }
+  }, [fetchProfile]);
 
   const verifyEmailOtp = useCallback(async (email: string, token: string) => {
     setError(null);
-    try {
-      const { data, error: e } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'email',
-      });
-      if (e) throw e;
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.user);
-        if (data.session.access_token) {
-          await fetchProfile(data.session.access_token);
-        }
+    const { data, error: e } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'email',
+    });
+    if (e) {
+      setError(e.message);
+      throw e;
+    }
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.user);
+      if (data.session.access_token) {
+        await fetchProfile(data.session.access_token);
       }
-    } catch (err: unknown) {
-      const norm = email.trim().toLowerCase();
-      const match = findStoredAccount(norm);
-      // In rate-limited environments or standard 6-digit OTP verification:
-      if (token.trim().length === 6 || match) {
-        console.info('[Auth] OTP verified for rate-limited account:', email);
-        if (match) {
-          const p: UserProfile = {
-            id: match.id,
-            displayName: match.displayName,
-            email: match.email,
-            phone: match.phone || null,
-            avatarUrl: null,
-            region: match.region || null,
-            accountStatus: match.accountStatus,
-            roles: match.roles,
-            createdAt: match.createdAt,
-            updatedAt: match.createdAt,
-          };
-          setProfile(p);
-          setCachedSession(p);
-        }
-        return;
-      }
-      const msg = err instanceof Error ? err.message : 'Invalid OTP code';
-      setError(msg);
-      throw err;
     }
   }, [fetchProfile]);
 
@@ -264,116 +228,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (meta.subRole) userMetadata.sub_role = meta.subRole;
     }
 
-    const accountType = (userMetadata.account_type || 'EMPLOYEE') as 'EMPLOYEE' | 'CUSTOMER';
-    const subRole = (userMetadata.sub_role || 'field_worker') as 'manager' | 'field_worker';
-    const roles = accountType === 'CUSTOMER' ? ['customer'] : ['employee'];
-    const accountStatus = accountType === 'CUSTOMER' ? 'active' : 'pending';
-
-    const newAccount: RegisteredAccount = {
-      id: `usr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    const { data, error: e } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
-      displayName: userMetadata.full_name || email.split('@')[0],
-      phone: userMetadata.phone,
-      region: userMetadata.region || 'Tenali / Guntur',
-      skills: userMetadata.skills || [],
-      accountType,
-      subRole,
-      accountStatus,
-      roles,
-      createdAt: new Date().toISOString(),
-    };
+      options: Object.keys(userMetadata).length > 0 ? { data: userMetadata } : undefined,
+    });
 
-    saveStoredAccount(newAccount);
-
-    try {
-      const { data, error: e } = await supabase.auth.signUp({
-        email,
-        password,
-        options: Object.keys(userMetadata).length > 0 ? { data: userMetadata } : undefined,
-      });
-
-      if (e) {
-        const isRateLimit =
-          e.message?.toLowerCase().includes('rate limit') ||
-          e.message?.toLowerCase().includes('rate_limit') ||
-          (e as any).status === 429;
-
-        if (isRateLimit) {
-          console.warn('[Auth] Supabase email rate limit bypassed gracefully for:', email);
-          if (accountType === 'CUSTOMER') {
-            const p: UserProfile = {
-              id: newAccount.id,
-              displayName: newAccount.displayName,
-              email: newAccount.email,
-              phone: newAccount.phone || null,
-              avatarUrl: null,
-              region: newAccount.region || null,
-              accountStatus: 'active',
-              roles: ['customer'],
-              createdAt: newAccount.createdAt,
-              updatedAt: newAccount.createdAt,
-            };
-            setProfile(p);
-            setCachedSession(p);
-          }
-          return { needsConfirmation: false };
-        }
-
-        setError(e.message);
-        throw e;
-      }
-
-      const needsConfirmation = !data.session;
-      return { needsConfirmation };
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (
-        msg.toLowerCase().includes('rate limit') ||
-        msg.toLowerCase().includes('rate_limit')
-      ) {
-        console.warn('[Auth] Supabase rate limit caught gracefully for:', email);
-        if (accountType === 'CUSTOMER') {
-          const p: UserProfile = {
-            id: newAccount.id,
-            displayName: newAccount.displayName,
-            email: newAccount.email,
-            phone: newAccount.phone || null,
-            avatarUrl: null,
-            region: newAccount.region || null,
-            accountStatus: 'active',
-            roles: ['customer'],
-            createdAt: newAccount.createdAt,
-            updatedAt: newAccount.createdAt,
-          };
-          setProfile(p);
-          setCachedSession(p);
-        }
-        return { needsConfirmation: false };
-      }
-      throw err;
+    if (e) {
+      setError(e.message);
+      throw e;
     }
-  }, []);
+
+    const needsConfirmation = !data.session;
+    if (data.session?.access_token) {
+      setSession(data.session);
+      setUser(data.user);
+      await fetchProfile(data.session.access_token);
+    }
+    return { needsConfirmation };
+  }, [fetchProfile]);
 
   const signInWithOtp = useCallback(async (email: string) => {
     setError(null);
-    try {
-      const { error: e } = await supabase.auth.signInWithOtp({ email });
-      if (e) throw e;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.toLowerCase().includes('rate limit')) {
-        console.warn('[Auth] signInWithOtp rate limit ignored:', msg);
-        return;
-      }
-      setError(msg);
-      throw err;
+    const { error: e } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+    });
+    if (e) {
+      setError(e.message);
+      throw e;
     }
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     setError(null);
-    const { error: e } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (e) {
@@ -401,7 +289,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUser(null);
     setProfile(null);
-    setCachedSession(null);
   }, []);
 
   const refreshProfile = useCallback(async (): Promise<UserProfile | null> => {

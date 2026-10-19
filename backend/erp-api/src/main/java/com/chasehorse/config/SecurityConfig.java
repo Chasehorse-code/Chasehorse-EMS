@@ -28,8 +28,7 @@ public class SecurityConfig {
                     "/actuator/health",
                     "/actuator/health/**",
                     "/error",
-                    "/api/v1/tms/tracking/**",
-                    "/api/v1/tms/plans"
+                    "/api/v1/tms/tracking/**"
                 ).permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
@@ -37,12 +36,30 @@ public class SecurityConfig {
     }
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource(
+        @Value("${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:8081,http://localhost:8082,http://localhost:8083,http://localhost:8084,http://localhost:8085,http://localhost:19000,http://localhost:19006,http://127.0.0.1:5173}") String allowedOriginsStr
+    ) {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        java.util.List<String> origins = java.util.Arrays.stream(allowedOriginsStr.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isBlank())
+            .toList();
+
+        // Enforce safe origin allowlist: Never allow wildcard '*' with credentials
+        boolean hasWildcard = origins.stream().anyMatch(o -> o.equals("*"));
+        if (hasWildcard) {
+            config.setAllowedOriginPatterns(List.of("*"));
+            config.setAllowCredentials(false);
+        } else {
+            config.setAllowedOrigins(origins);
+            config.setAllowCredentials(true);
+        }
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
+        config.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
