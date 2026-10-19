@@ -67,7 +67,7 @@ public class ApprovalController {
 
     @PostMapping("/{id}/decision")
     @Transactional
-    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS')")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS', 'MANAGER')")
     public Map<String, Object> decideApproval(
         @PathVariable UUID id,
         @Valid @RequestBody ApprovalDecisionRequest request,
@@ -75,6 +75,8 @@ public class ApprovalController {
     ) {
         UUID actorId = UUID.fromString(jwt.getSubject());
         boolean isApproved = "APPROVED".equalsIgnoreCase(request.stage());
+        boolean isRework = "REWORK".equalsIgnoreCase(request.stage());
+        String targetTaskStatus = isApproved ? "APPROVED" : (isRework ? "IN_PROGRESS" : "REJECTED");
 
         var approvalRows = jdbc.query("""
             SELECT a.task_id, t.assigned_to, t.reward_amount
@@ -104,7 +106,7 @@ public class ApprovalController {
         // Update task status
         jdbc.update("""
             UPDATE tasks SET status = ?, updated_at = now() WHERE id = ?
-            """, isApproved ? "APPROVED" : "REJECTED", taskId);
+            """, targetTaskStatus, taskId);
 
         // If approved and positive reward, credit the employee's wallet idempotently
         if (isApproved && reward != null && reward.compareTo(BigDecimal.ZERO) > 0) {

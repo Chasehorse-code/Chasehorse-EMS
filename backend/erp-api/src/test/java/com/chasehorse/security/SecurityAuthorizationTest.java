@@ -620,4 +620,70 @@ class SecurityAuthorizationTest {
         assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, ex.getStatus());
         assertTrue(ex.getMessage().contains("Only active field workers"));
     }
+
+    @Test
+    @DisplayName("Employee cannot query another employee's authoritative wallet balance")
+    void employeeCannotQueryOtherEmployeeWalletBalance() throws Exception {
+        UUID workerA = UUID.randomUUID();
+        UUID workerB = UUID.randomUUID();
+
+        Mockito.when(roleAuth.getRoles(workerA.toString())).thenReturn(List.of("FIELD_WORKER"));
+
+        mvc.perform(get("/api/v1/wallets/" + workerB)
+               .with(jwt().jwt(j -> j.subject(workerA.toString()))))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Unassigned employee cannot submit evidence for another worker's task")
+    void unassignedWorkerCannotSubmitEvidence() throws Exception {
+        UUID workerA = UUID.randomUUID();
+        UUID workerB = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.getRoles(workerA.toString())).thenReturn(List.of("FIELD_WORKER"));
+        // Task assigned to workerB
+        Mockito.when(jdbc.query(contains("FROM tasks WHERE id = ?"), any(RowMapper.class), eq(taskId)))
+               .thenReturn(List.of(Map.of("assignedTo", workerB, "status", "IN_PROGRESS")));
+
+        mvc.perform(post("/api/v1/evidence")
+               .with(jwt().jwt(j -> j.subject(workerA.toString())))
+               .contentType(MediaType.APPLICATION_JSON)
+               .content("""
+                   {
+                     "taskId": "%s",
+                     "storagePath": "evidence/photo.jpg",
+                     "fileName": "photo.jpg",
+                     "contentType": "image/jpeg"
+                   }
+                   """.formatted(taskId)))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("TMS create shipment computes server price from transport plan")
+    void tmsCreateShipmentCalculatesServerPrice() throws Exception {
+        UUID customerId = UUID.randomUUID();
+        UUID planId = UUID.randomUUID();
+
+        Mockito.when(roleAuth.getRoles(customerId.toString())).thenReturn(List.of("CUSTOMER"));
+        Mockito.when(jdbc.query(contains("FROM tms_transport_plans WHERE id = ?"), any(RowMapper.class), eq(planId)))
+               .thenReturn(List.of(BigDecimal.valueOf(1850)));
+
+        mvc.perform(post("/api/v1/tms/shipments")
+               .with(jwt().jwt(j -> j.subject(customerId.toString())))
+               .contentType(MediaType.APPLICATION_JSON)
+               .content("""
+                   {
+                     "originAddress": "123 Warehouse Rd, Tenali",
+                     "destinationAddress": "456 Market St, Guntur",
+                     "cargoDescription": "Electronics pallet",
+                     "cargoWeightKg": 850,
+                     "transportPlanId": "%s"
+                   }
+                   """.formatted(planId)))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.status").value("CONFIRMED"))
+           .andExpect(jsonPath("$.totalPrice").value(1850));
+    }
 }

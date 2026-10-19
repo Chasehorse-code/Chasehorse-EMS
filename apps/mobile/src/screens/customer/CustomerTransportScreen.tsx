@@ -9,10 +9,12 @@ import {
 } from 'react-native';
 import { colors, spacing, radius } from '../../theme';
 import { Header } from '../../components/ui/Header';
+import { useAuth } from '../../context/AuthContext';
 import { mobileApi } from '../../api/restApi';
 import type { TruckPlan } from '../../types';
 
 export const CustomerTransportScreen: React.FC = () => {
+  const { user } = useAuth();
   const [plans, setPlans] = useState<TruckPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<TruckPlan | null>(null);
@@ -20,11 +22,11 @@ export const CustomerTransportScreen: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     mobileApi
-      .getTruckPlans()
+      .getTruckPlans(user?.token)
       .then((data) => setPlans(data || []))
       .catch(() => setPlans([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.token]);
 
   const handleBook = (plan: TruckPlan) => {
     setSelectedPlan(plan);
@@ -35,11 +37,24 @@ export const CustomerTransportScreen: React.FC = () => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Confirm Booking ✓',
-          onPress: () => {
-            Alert.alert(
-              'Transport Booked Successfully',
-              `Booking Reference: CH-TRK-${Math.floor(1000 + Math.random() * 9000)}\nA ${plan.name} has been dispatched. Assigned driver will contact you for loading coordination.`,
-            );
+          onPress: async () => {
+            try {
+              const booking = await mobileApi.createShipment(
+                {
+                  originAddress: 'Operational Hub, Tenali Cluster',
+                  destinationAddress: 'Consignment Delivery Terminal',
+                  cargoDescription: `${plan.name} Freight Dispatch`,
+                  transportPlanId: plan.id,
+                },
+                user?.token
+              );
+              Alert.alert(
+                'Transport Booked Successfully',
+                `Booking Reference: ${booking.bookingRef || 'CH-TMS-CONFIRMED'}\n\nA ${plan.name} has been dispatched. Track telemetry live in the Tracking tab.`
+              );
+            } catch (err: any) {
+              Alert.alert('Booking Error', err.message || 'Unable to register transport booking on server.');
+            }
           },
         },
       ],

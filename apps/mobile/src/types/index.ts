@@ -125,3 +125,96 @@ export interface ShipmentMilestone {
   completed: boolean;
   current?: boolean;
 }
+
+export interface DashboardStats {
+  totalTasks: number;
+  openTasks: number;
+  inProgress: number;
+  awaitingReview: number;
+  approvedTotal: number;
+  activeEmployees: number;
+  pendingEmployeeApprovals: number;
+  awaitingOps: number;
+  byStatus: Record<string, number>;
+}
+
+export interface ChecklistTemplateItem {
+  id: string;
+  label: string;
+  required: boolean;
+  requiresPhoto: boolean;
+  sortOrder: number;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  category: string;
+  items: ChecklistTemplateItem[];
+}
+
+export interface EvidenceRecord {
+  id: string;
+  taskId: string;
+  submittedBy: string;
+  createdAt: string;
+  photos: {
+    id: string;
+    storagePath: string;
+    fileName: string;
+    caption?: string;
+    locationLat?: number;
+    locationLng?: number;
+    capturedAt?: string;
+  }[];
+  ai: {
+    status: string;
+    confidence?: number;
+    summary?: string;
+  };
+  manager: {
+    status: string;
+    decidedBy?: string;
+    decidedAt?: string;
+    notes?: string;
+  };
+}
+
+export interface ApprovalRequestItem {
+  id: string;
+  taskId: string;
+  evidenceId?: string;
+  employeeId?: string;
+  rewardInr: number;
+  stage: string;
+  submittedAt: string;
+  note?: string;
+}
+
+export interface EmployeeDirectoryItem {
+  id: string;
+  displayName: string;
+  email: string;
+  phone?: string;
+  region?: string;
+  accountStatus: string;
+  roles: string[];
+  createdAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  entityType?: string;
+  entityId?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface WalletAccount {
+  employeeId: string;
+  balanceInr: number;
+  pendingInr: number;
+}

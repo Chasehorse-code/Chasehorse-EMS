@@ -65,6 +65,34 @@ public class WalletController {
         );
     }
 
+    @GetMapping("/{employeeId}")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS', 'MANAGER', 'EMPLOYEE', 'FIELD_WORKER')")
+    public WalletAccountView getWalletAccount(
+        @PathVariable UUID employeeId,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        boolean isPrivileged = roles.stream().anyMatch(r ->
+            r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("OPERATIONS") || r.equalsIgnoreCase("MANAGER"));
+
+        if (!isPrivileged && !actorId.equals(employeeId)) {
+            throw ApiException.forbidden("Cannot view another employee's wallet account");
+        }
+
+        BigDecimal balance = jdbc.queryForObject(
+            "SELECT COALESCE(SUM(amount), 0) FROM wallet_ledger WHERE user_id = ?",
+            BigDecimal.class, employeeId
+        );
+
+        BigDecimal pending = jdbc.queryForObject(
+            "SELECT COALESCE(SUM(reward_amount), 0) FROM tasks WHERE assigned_to = ? AND status IN ('SUBMITTED', 'IN_REVIEW')",
+            BigDecimal.class, employeeId
+        );
+
+        return new WalletAccountView(employeeId, balance != null ? balance : BigDecimal.ZERO, pending != null ? pending : BigDecimal.ZERO);
+    }
+
     @GetMapping("/{employeeId}/transactions")
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'OPERATIONS', 'EMPLOYEE', 'FIELD_WORKER')")
     public List<WalletTransactionView> listTransactions(

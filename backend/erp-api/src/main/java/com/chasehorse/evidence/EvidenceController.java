@@ -149,7 +149,18 @@ public class EvidenceController {
                 ), id
             );
 
-            AiVerificationView ai = new AiVerificationView("PASSED", new BigDecimal("0.96"), "All checklist items matched GPS bounds");
+            var aiRows = jdbc.query("""
+                SELECT status, confidence, summary FROM ai_verifications WHERE evidence_id = ?
+                """, (ars, an) -> new AiVerificationView(
+                    ars.getString("status"),
+                    ars.getBigDecimal("confidence"),
+                    ars.getString("summary")
+                ), id);
+
+            AiVerificationView ai = !aiRows.isEmpty()
+                ? aiRows.get(0)
+                : new AiVerificationView("PENDING", null, "AI verification pending automated model execution");
+
             ManagerDecisionView manager = new ManagerDecisionView(
                 vStatus != null ? vStatus : "PENDING",
                 "Operations Reviewer",
@@ -163,12 +174,31 @@ public class EvidenceController {
 
     @PostMapping
     @Transactional
-    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'FIELD_WORKER')")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'FIELD_WORKER', 'EMPLOYEE')")
     public EvidenceView submitEvidence(
         @Valid @RequestBody SubmitEvidenceRequest request,
         @AuthenticationPrincipal Jwt jwt
     ) {
         UUID actorId = UUID.fromString(jwt.getSubject());
+        List<String> roles = roleAuth.getRoles(jwt.getSubject());
+        boolean isStaff = roles.stream().anyMatch(r ->
+            r.equalsIgnoreCase("ADMIN") || r.equalsIgnoreCase("MANAGER") || r.equalsIgnoreCase("OPERATIONS"));
+
+        var taskRows = jdbc.query("SELECT assigned_to, status FROM tasks WHERE id = ?",
+            (rs, n) -> Map.of(
+                "assignedTo", rs.getObject("assigned_to", UUID.class) != null ? rs.getObject("assigned_to", UUID.class) : UUID.randomUUID(),
+                "status", rs.getString("status")
+            ), request.taskId());
+
+        if (taskRows.isEmpty()) {
+            throw ApiException.notFound("Task", request.taskId());
+        }
+
+        UUID assignedTo = (UUID) taskRows.get(0).get("assignedTo");
+        if (!isStaff && !actorId.equals(assignedTo)) {
+            throw ApiException.forbidden("You are not assigned to this task");
+        }
+
         UUID id = UUID.randomUUID();
 
         jdbc.update("""
@@ -191,7 +221,7 @@ public class EvidenceController {
 
     @PostMapping("/{id}/manager-decision")
     @Transactional
-    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER')")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS')")
     public Map<String, Object> decideEvidence(
         @PathVariable UUID id,
         @Valid @RequestBody ManagerDecisionRequest request,

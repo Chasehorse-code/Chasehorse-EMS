@@ -67,7 +67,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await res.json();
     const roles: string[] = data.roles || [];
     let mappedRole: Role = 'employee';
-    if (roles.some((r) => r.toUpperCase() === 'ADMIN' || r.toUpperCase() === 'MANAGER' || r.toUpperCase() === 'OPERATIONS')) {
+    if (roles.some((r) => r.toUpperCase() === 'ADMIN')) {
+      mappedRole = 'admin';
+    } else if (roles.some((r) => r.toUpperCase() === 'MANAGER' || r.toUpperCase() === 'OPERATIONS')) {
       mappedRole = 'manager';
     } else if (roles.some((r) => r.toUpperCase() === 'CUSTOMER')) {
       mappedRole = 'customer';

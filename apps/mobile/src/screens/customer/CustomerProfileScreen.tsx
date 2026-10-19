@@ -41,7 +41,7 @@ export const CustomerProfileScreen: React.FC = () => {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.companyName}>{user?.companyName || 'Apex Retail Brands Pvt Ltd'}</Text>
+              <Text style={styles.companyName}>{user?.companyName || 'Corporate Client Account'}</Text>
               <Text style={styles.roleSub}>Corporate Client Account • Verified</Text>
             </View>
             <View style={styles.activeTag}>
@@ -51,29 +51,29 @@ export const CustomerProfileScreen: React.FC = () => {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Authorized Contact</Text>
-            <Text style={styles.infoVal}>{user?.displayName || 'Rahul Kumar'}</Text>
+            <Text style={styles.infoVal}>{user?.displayName || 'Authorized Representative'}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Business Email</Text>
-            <Text style={styles.infoVal}>{user?.email || 'rahul.kumar@apexretail.com'}</Text>
+            <Text style={styles.infoVal}>{user?.email || 'Not Provided'}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Mobile Contact</Text>
-            <Text style={styles.infoVal}>{user?.phone || '+91 99000 12345'}</Text>
+            <Text style={styles.infoVal}>{user?.phone || 'Not Provided'}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Verified GSTIN</Text>
             <Text style={[styles.infoVal, { fontFamily: 'monospace', color: colors.blueAccent }]}>
-              {user?.gstin || '37AAACA1234F1Z8'}
+              {user?.gstin || 'Not Provided'}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Operating Cluster</Text>
-            <Text style={styles.infoVal}>{user?.region || 'Tenali Urban, Andhra Pradesh'}</Text>
+            <Text style={styles.infoVal}>{user?.region || 'National Network'}</Text>
           </View>
         </View>
 

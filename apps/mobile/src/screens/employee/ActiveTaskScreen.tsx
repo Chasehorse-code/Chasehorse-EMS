@@ -10,6 +10,7 @@ import {
 import { colors, spacing, radius } from '../../theme';
 import { Header } from '../../components/ui/Header';
 import { Badge } from '../../components/ui/Badge';
+import { useAuth } from '../../context/AuthContext';
 import { CameraHUD } from '../../components/camera/CameraHUD';
 import { mobileApi } from '../../api/restApi';
 import type { Task, TaskChecklistItem } from '../../types';
@@ -25,6 +26,7 @@ export const ActiveTaskScreen: React.FC<ActiveTaskScreenProps> = ({
   onTaskCompleted,
   onNavigateToNearby,
 }) => {
+  const { user } = useAuth();
   const [showCamera, setShowCamera] = useState(false);
   const [evidenceCaptured, setEvidenceCaptured] = useState<{
     lat: number;
@@ -33,14 +35,38 @@ export const ActiveTaskScreen: React.FC<ActiveTaskScreenProps> = ({
     aiScore: string;
   } | null>(null);
 
-  // Default checklist if not provided
-  const [checklist, setChecklist] = useState<TaskChecklistItem[]>(
-    task?.checklist || [
-      { id: '1', label: 'Verify storefront presence & street sign', done: true, requiresPhoto: true },
-      { id: '2', label: 'Inspect promotional discount standee & vinyl condition', done: true, requiresPhoto: true },
-      { id: '3', label: 'Confirm zero competitor sticker overlap', done: false, requiresPhoto: false },
-    ],
-  );
+  const [checklist, setChecklist] = useState<TaskChecklistItem[]>([]);
+  const [loadingChecklist, setLoadingChecklist] = useState(false);
+
+  React.useEffect(() => {
+    if (task?.checklistTemplateId) {
+      setLoadingChecklist(true);
+      mobileApi
+        .getChecklistTemplate(task.checklistTemplateId, user?.token)
+        .then((tpl) => {
+          if (tpl && tpl.items && tpl.items.length > 0) {
+            setChecklist(
+              tpl.items.map((it) => ({
+                id: it.id,
+                label: it.label,
+                done: false,
+                requiresPhoto: it.requiresPhoto,
+              }))
+            );
+          } else if (task.checklist && task.checklist.length > 0) {
+            setChecklist(task.checklist.map((c) => ({ ...c, done: false })));
+          }
+        })
+        .catch(() => {
+          if (task.checklist) {
+            setChecklist(task.checklist.map((c) => ({ ...c, done: false })));
+          }
+        })
+        .finally(() => setLoadingChecklist(false));
+    } else if (task?.checklist && task.checklist.length > 0) {
+      setChecklist(task.checklist.map((c) => ({ ...c, done: false })));
+    }
+  }, [task?.id, task?.checklistTemplateId, user?.token]);
 
   if (!task) {
     return (
@@ -67,7 +93,7 @@ export const ActiveTaskScreen: React.FC<ActiveTaskScreenProps> = ({
   };
 
   const completedCount = checklist.filter((c) => c.done).length;
-  const allCompleted = completedCount === checklist.length;
+  const allCompleted = checklist.length > 0 && completedCount === checklist.length;
 
   const handleSubmit = async () => {
     if (!allCompleted) {
@@ -81,11 +107,15 @@ export const ActiveTaskScreen: React.FC<ActiveTaskScreenProps> = ({
     }
 
     try {
-      await mobileApi.submitEvidence(task.id, {
-        storagePath: `evidence/${task.id}/hud_${Date.now()}.jpg`,
-        fileName: `evidence_${task.id}.jpg`,
-        caption: `GPS Verified (${evidenceCaptured.lat}, ${evidenceCaptured.lng}) at ${evidenceCaptured.timestamp}`,
-      });
+      await mobileApi.submitEvidence(
+        task.id,
+        {
+          storagePath: `evidence/${task.id}/hud_${Date.now()}.jpg`,
+          fileName: `evidence_${task.id}.jpg`,
+          caption: `GPS Verified (${evidenceCaptured.lat}, ${evidenceCaptured.lng}) at ${evidenceCaptured.timestamp}`,
+        },
+        user?.token
+      );
       Alert.alert(
         'Evidence Submitted for Operations Review',
         `Task bounty of ₹${task.rewardInr} has been submitted for review. Reward credits once Operations Manager approves.`,

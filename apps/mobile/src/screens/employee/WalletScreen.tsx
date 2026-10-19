@@ -16,26 +16,31 @@ import type { WalletTransaction } from '../../types';
 export const WalletScreen: React.FC = () => {
   const { user } = useAuth();
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
+  const [account, setAccount] = useState<{ balanceInr: number; pendingInr: number }>({ balanceInr: 0, pendingInr: 0 });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       setLoading(true);
-      mobileApi
-        .getWalletTransactions(user.id)
-        .then((data) => setTxns(data || []))
-        .catch(() => setTxns([]))
+      Promise.all([
+        mobileApi.getWalletAccount(user.id, user.token),
+        mobileApi.getWalletTransactions(user.id, user.token),
+      ])
+        .then(([acc, transactions]) => {
+          if (acc) {
+            setAccount({ balanceInr: acc.balanceInr, pendingInr: acc.pendingInr });
+          }
+          setTxns(transactions || []);
+        })
+        .catch(() => {
+          setTxns([]);
+        })
         .finally(() => setLoading(false));
     }
-  }, [user?.id]);
+  }, [user?.id, user?.token]);
 
-  const completedTotal = txns
-    .filter((t) => t.status === 'COMPLETED')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const pendingTotal = txns
-    .filter((t) => t.status === 'PENDING')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const completedTotal = account.balanceInr;
+  const pendingTotal = account.pendingInr;
 
   const handleWithdraw = () => {
     Alert.alert(

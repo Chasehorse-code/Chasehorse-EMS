@@ -163,12 +163,24 @@ public class TmsController {
         UUID id = UUID.randomUUID();
         String bookingRef = "CH-TMS-" + (10000 + (System.currentTimeMillis() % 90000));
 
+        // Calculate and validate price on server from plan rules
+        BigDecimal serverPrice = BigDecimal.valueOf(500);
+        if (request.transportPlanId() != null) {
+            var planRows = jdbc.query("SELECT base_price FROM tms_transport_plans WHERE id = ?",
+                (rs, n) -> rs.getBigDecimal("base_price"), request.transportPlanId());
+            if (!planRows.isEmpty() && planRows.get(0) != null && planRows.get(0).compareTo(BigDecimal.ZERO) > 0) {
+                serverPrice = planRows.get(0);
+            }
+        } else if (request.totalPrice() != null && request.totalPrice().compareTo(BigDecimal.valueOf(100)) >= 0) {
+            serverPrice = request.totalPrice();
+        }
+
         jdbc.update("""
             INSERT INTO tms_bookings (id, booking_ref, customer_id, transport_plan_id, origin_address,
                                      destination_address, cargo_description, cargo_weight_kg, total_price, status, currency)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', 'INR')
             """, id, bookingRef, actorId, request.transportPlanId(), request.originAddress(), request.destinationAddress(),
-            request.cargoDescription(), request.cargoWeightKg(), request.totalPrice());
+            request.cargoDescription(), request.cargoWeightKg(), serverPrice);
 
         // Create initial tracking event
         jdbc.update("""
@@ -182,7 +194,7 @@ public class TmsController {
         return new ShipmentView(
             id, bookingRef, actorId, request.originAddress(), request.destinationAddress(),
             request.cargoDescription(), request.cargoWeightKg(), "CONFIRMED",
-            request.totalPrice(), OffsetDateTime.now()
+            serverPrice, OffsetDateTime.now()
         );
     }
 

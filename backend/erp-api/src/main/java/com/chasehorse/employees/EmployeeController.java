@@ -99,7 +99,7 @@ public class EmployeeController {
                 throw ApiException.forbidden("Only administrators can assign or modify application roles");
             }
 
-            var validRoles = List.of("FIELD_WORKER", "DRIVER", "DISPATCHER", "WAREHOUSE_STAFF", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "MANAGER");
+            var validRoles = List.of("ADMIN", "MANAGER", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "PARTNER", "FIELD_WORKER");
             if (!validRoles.contains(request.role().toUpperCase())) {
                 throw ApiException.badRequest("Invalid role: " + request.role());
             }
