@@ -48,10 +48,11 @@ export const RegisterEmployeeScreen: React.FC<RegisterEmployeeScreenProps> = ({ 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleExtractGps = () => {
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+    const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
+    if (nav?.geolocation) {
       setLoadingGps(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
+      nav.geolocation.getCurrentPosition(
+        (pos: any) => {
           setLoadingGps(false);
           setGpsCoordinates({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           Alert.alert(
