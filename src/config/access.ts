@@ -189,7 +189,7 @@ export const customerNavItems: NavItem[] = [
     end: true,
   },
   {
-    to: '/tasks',
+    to: '/customer/tasks',
     label: 'My Tasks',
     icon: ClipboardList,
     roles: ['customer'],

@@ -149,9 +149,7 @@ export const restApi: ChaseHorseApi = {
         priority: input.priority,
         dueAt: input.dueAt,
       }),
-    });
-
-    return {
+    const created: Task = {
       id: res.id,
       title: res.title,
       description: res.description,
@@ -160,8 +158,8 @@ export const restApi: ChaseHorseApi = {
       priority: input.priority,
       customerId: res.customerId || input.customerId,
       location: {
-        lat: res.locationLat ? Number(res.locationLat) : (input.locationLat || 0),
-        lng: res.locationLng ? Number(res.locationLng) : (input.locationLng || 0),
+        lat: Number(res.locationLat) || input.locationLat || 16.2418,
+        lng: Number(res.locationLng) || input.locationLng || 80.6448,
         area: input.areaKey,
         address: input.address,
       },
@@ -171,6 +169,8 @@ export const restApi: ChaseHorseApi = {
       assigneeId: res.assignedTo,
       checklistTemplateId: input.checklistTemplateId,
     };
+    saveStoredTask(created);
+    return created;
   },
 
   async assignTask(taskId: string, employeeId: string): Promise<Task> {
