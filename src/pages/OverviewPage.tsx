@@ -1,5 +1,17 @@
 import { Link } from 'react-router-dom';
-import { Activity, CheckCircle2, ClipboardList, Clock, Hourglass, ShieldCheck, UserCheck, Users } from 'lucide-react';
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Hourglass,
+  LayoutGrid,
+  RotateCcw,
+  ShieldCheck,
+  UserCheck,
+  Users,
+} from 'lucide-react';
 import { api } from '@/api';
 import { useAsync } from '@/hooks/useAsync';
 import { useDirectory } from '@/hooks/useDirectory';
@@ -7,6 +19,7 @@ import { useRole } from '@/context/RoleContext';
 import { PageHeader, Card, CardHeader, StatCard } from '@/components/ui/Card';
 import { Async, EmptyState } from '@/components/ui/States';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { BarList, TrendChart } from '@/components/charts/Charts';
 import { formatDate } from '@/utils/format';
 import { priorityLabel, taskStatusLabel, taskStatusOrder } from '@/utils/labels';
@@ -23,27 +36,83 @@ export function OverviewPage() {
   const stats = useAsync(() => api.getDashboardStats({ customerId }), [customerId]);
   const tasks = useAsync(() => api.listTasks({ customerId }), [customerId]);
   const evidence = useAsync(() => api.listEvidence({ customerId }), [customerId]);
+  const approvals = useAsync(() => api.listApprovals(), []);
   const dir = useDirectory();
 
   const awaitingManager = evidence.data?.filter((e) => e.managerDecision.status === 'pending').length;
+  const pendingApprovalsCount = approvals.data?.filter((a) => a.stage === 'awaiting_ops').length ?? 0;
+
+  const reloadAll = () => {
+    stats.reload();
+    tasks.reload();
+    evidence.reload();
+    approvals.reload();
+  };
+
+  const overdueTasks = (tasks.data ?? []).filter(
+    (t) => t.status !== 'approved' && t.status !== 'cancelled' && new Date(t.dueAt).getTime() < Date.now(),
+  );
 
   return (
     <>
       <PageHeader
-        title="Operations Overview"
-        description={
-          isCustomer
-            ? 'Real-time status of your service requests and shipments.'
-            : 'Operational dashboard for field tasks, workforce, and transport execution.'
-        }
+        title="Field Operations Control Center"
+        description="Real-time operational dashboard for workforce orchestration, task dispatch, and approval velocity."
         actions={
-          can('createTasks') ? (
-            <Link to="/tasks/new" className="btn btn--primary btn--md">
-              Create task
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<RotateCcw size={14} />}
+              onClick={reloadAll}
+              title="Refresh all metrics"
+              aria-label="Refresh operational metrics"
+            >
+              Refresh
+            </Button>
+            <Link to="/tasks" className="btn btn--secondary btn--md">
+              <span className="btn__icon" aria-hidden><LayoutGrid size={15} /></span>
+              Task Board
             </Link>
-          ) : undefined
+            {can('createTasks') && (
+              <Link to="/tasks/new" className="btn btn--primary btn--md">
+                Create task
+              </Link>
+            )}
+          </div>
         }
       />
+
+      {overdueTasks.length > 0 && (
+        <div
+          style={{
+            background: 'var(--danger-bg)',
+            border: '1px solid var(--bad)',
+            borderRadius: 'var(--radius)',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertCircle size={18} style={{ color: 'var(--bad)', flexShrink: 0 }} />
+            <div>
+              <strong style={{ color: 'var(--bad)', fontSize: '13.5px' }}>
+                {overdueTasks.length} {overdueTasks.length === 1 ? 'task has' : 'tasks have'} breached SLA deadline
+              </strong>
+              <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)' }}>
+                Immediate operational dispatch or reallocation required.
+              </span>
+            </div>
+          </div>
+          <Link to="/tasks" className="btn btn--danger btn--sm">
+            View in Task Board
+          </Link>
+        </div>
+      )}
 
       <Async state={stats} skeletonLines={3}>
         {(s) => (
@@ -106,7 +175,7 @@ export function OverviewPage() {
                   {can('decideApprovals') && (
                     <li>
                       <ShieldCheck size={18} aria-hidden />
-                      <span><strong>{s.awaitingOps}</strong> items in the operations approval queue</span>
+                      <span><strong>{pendingApprovalsCount || s.awaitingOps}</strong> items in the operations approval queue</span>
                       <Link to="/approvals">Open queue</Link>
                     </li>
                   )}

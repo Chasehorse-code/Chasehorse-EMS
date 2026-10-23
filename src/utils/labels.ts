@@ -67,6 +67,7 @@ export const approvalStageLabel: Record<ApprovalStage, Label> = {
   approved: { label: 'Operations approved', tone: 'success' },
   rejected: { label: 'Operations rejected', tone: 'danger' },
   escalated: { label: 'Escalated', tone: 'danger' },
+  rework: { label: 'Rework requested', tone: 'warning' },
 };
 
 export const transactionTypeLabel: Record<TransactionType, string> = {

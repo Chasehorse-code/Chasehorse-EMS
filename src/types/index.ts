@@ -195,9 +195,14 @@ export interface Evidence {
   managerDecision: ManagerDecision;
 }
 
-/* ---------- Operations Approval Queue ---------- */
+export type ApprovalStage = 'awaiting_ops' | 'approved' | 'rejected' | 'escalated' | 'rework';
 
-export type ApprovalStage = 'awaiting_ops' | 'approved' | 'rejected' | 'escalated';
+export interface ApprovalAuditEntry {
+  stage: ApprovalStage;
+  decidedAt: string;
+  decidedBy?: string;
+  note?: string;
+}
 
 export interface ApprovalRequest {
   id: string;
@@ -210,6 +215,8 @@ export interface ApprovalRequest {
   decidedAt?: string;
   decidedBy?: string;
   note?: string;
+  reworkInstructions?: string;
+  history?: ApprovalAuditEntry[];
 }
 
 /* ---------- Wallet ---------- */
