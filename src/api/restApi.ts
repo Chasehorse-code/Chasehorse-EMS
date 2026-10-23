@@ -272,69 +272,42 @@ export const restApi: ChaseHorseApi = {
   },
 
   async createTask(input: NewTaskInput): Promise<Task> {
-    try {
-      const res = await http<any>('/tasks', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: input.title,
-          description: input.description,
-          rewardAmount: input.rewardInr,
-          checklistTemplateId: input.checklistTemplateId,
-          areaKey: input.areaKey,
-          address: input.address,
-          category: input.category,
-          priority: input.priority,
-          dueAt: input.dueAt,
-        }),
-      });
-      const created: Task = {
-        id: res.id,
-        title: res.title,
-        description: res.description,
-        category: input.category,
-        status: (res.status?.toLowerCase() || 'open') as any,
-        priority: input.priority,
-        customerId: input.customerId,
-        location: {
-          lat: Number(res.locationLat) || input.locationLat || 16.2418,
-          lng: Number(res.locationLng) || input.locationLng || 80.6448,
-          area: input.areaKey,
-          address: input.address,
-        },
-        dueAt: input.dueAt,
-        createdAt: res.createdAt || new Date().toISOString(),
-        rewardInr: Number(res.rewardAmount) || input.rewardInr,
-        assigneeId: res.assignedTo,
-        checklistTemplateId: input.checklistTemplateId,
-      };
-      saveStoredTask(created);
-      return created;
-    } catch (err) {
-      console.warn('[restApi] Backend /tasks POST unavailable, persisting to client task registry:', err);
-      const generatedId = `TSK-${Math.floor(1000 + Math.random() * 9000)}`;
-      const fallbackTask: Task = {
-        id: generatedId,
+    const res = await http<any>('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({
         title: input.title,
         description: input.description,
-        category: input.category,
-        status: 'open',
-        priority: input.priority,
-        customerId: input.customerId,
-        location: {
-          lat: input.locationLat || 16.2418,
-          lng: input.locationLng || 80.6448,
-          area: input.areaKey || 'Tenali Urban, Andhra Pradesh',
-          address: input.address || 'Field Location',
-        },
-        dueAt: input.dueAt,
-        createdAt: new Date().toISOString(),
-        rewardInr: input.rewardInr,
-        assigneeId: input.assigneeId,
+        rewardAmount: input.rewardInr,
         checklistTemplateId: input.checklistTemplateId,
-      };
-      saveStoredTask(fallbackTask);
-      return fallbackTask;
-    }
+        areaKey: input.areaKey,
+        address: input.address,
+        category: input.category,
+        priority: input.priority,
+        dueAt: input.dueAt,
+      }),
+    });
+    const created: Task = {
+      id: res.id,
+      title: res.title,
+      description: res.description,
+      category: input.category,
+      status: (res.status?.toLowerCase() || 'open') as any,
+      priority: input.priority,
+      customerId: input.customerId,
+      location: {
+        lat: Number(res.locationLat) || input.locationLat || 16.2418,
+        lng: Number(res.locationLng) || input.locationLng || 80.6448,
+        area: input.areaKey,
+        address: input.address,
+      },
+      dueAt: input.dueAt,
+      createdAt: res.createdAt || new Date().toISOString(),
+      rewardInr: Number(res.rewardAmount) || input.rewardInr,
+      assigneeId: res.assignedTo,
+      checklistTemplateId: input.checklistTemplateId,
+    };
+    saveStoredTask(created);
+    return created;
   },
 
   async assignTask(taskId: string, employeeId: string): Promise<Task> {
