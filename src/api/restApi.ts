@@ -42,8 +42,8 @@ const EMPTY_DASHBOARD_STATS: DashboardStats = {
 
 /**
  * Production REST implementation of ChaseHorseApi.
- * Communicates with the Spring Boot backend (`/api/v1/*`).
- * Employs zero client-side fake data, mock accounts, or fallback registries.
+ * Communicates directly with the Spring Boot backend (`/api/v1/*`).
+ * Zero client-side fake credentials, mock accounts, or simulated success fallbacks.
  */
 export const restApi: ChaseHorseApi = {
   async getDashboardStats(scope?: { customerId?: string }): Promise<DashboardStats> {
@@ -360,8 +360,24 @@ export const restApi: ChaseHorseApi = {
 
   async listApprovals(): Promise<ApprovalRequest[]> {
     try {
-      const data = await http<ApprovalRequest[]>('/approvals');
-      return Array.isArray(data) ? data : [];
+      const data = await http<any[]>('/approvals');
+      if (Array.isArray(data)) {
+        return data.map((item) => ({
+          id: item.id,
+          taskId: item.taskId,
+          evidenceId: item.evidenceId,
+          employeeId: item.employeeId,
+          rewardInr: Number(item.rewardInr) || 0,
+          stage: (item.stage?.toLowerCase() || 'awaiting_ops') as ApprovalStage,
+          submittedAt: item.submittedAt || new Date().toISOString(),
+          decidedAt: item.decidedAt,
+          decidedBy: item.decidedBy,
+          note: item.note,
+          reworkInstructions: item.reworkInstructions,
+          history: item.history || [],
+        }));
+      }
+      return [];
     } catch (err) {
       console.warn('[restApi] listApprovals error:', err);
       return [];
@@ -373,11 +389,30 @@ export const restApi: ChaseHorseApi = {
     stage: Exclude<ApprovalStage, 'awaiting_ops'>,
     note: string,
     actor: Actor,
+    reworkInstructions?: string,
   ): Promise<ApprovalRequest> {
-    return await http<ApprovalRequest>(`/approvals/${approvalId}/decision`, {
+    const res = await http<any>(`/approvals/${approvalId}/decision`, {
       method: 'POST',
-      body: JSON.stringify({ stage, note, decidedBy: actor.name }),
+      body: JSON.stringify({
+        stage: stage.toUpperCase(),
+        note: reworkInstructions ? `${note}\nRework Instructions: ${reworkInstructions}` : note,
+        decidedBy: actor.name,
+      }),
     });
+
+    return {
+      id: approvalId,
+      taskId: res.taskId || approvalId,
+      evidenceId: res.evidenceId || '',
+      employeeId: res.employeeId || '',
+      rewardInr: Number(res.rewardInr) || 0,
+      stage,
+      submittedAt: new Date().toISOString(),
+      decidedAt: new Date().toISOString(),
+      decidedBy: actor.name,
+      note,
+      reworkInstructions,
+    };
   },
 
   async listWalletAccounts(): Promise<WalletAccount[]> {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, UserPlus } from 'lucide-react';
+import { LayoutGrid, List, Plus, RotateCcw, Search, UserPlus } from 'lucide-react';
 import { api } from '@/api';
 import { useAsync } from '@/hooks/useAsync';
 import { useDirectory } from '@/hooks/useDirectory';
@@ -8,13 +8,14 @@ import { useRole } from '@/context/RoleContext';
 import { useToast } from '@/context/ToastContext';
 import { PageHeader, Card } from '@/components/ui/Card';
 import { Async, EmptyState } from '@/components/ui/States';
-import { Badge, DemoTag } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { SelectField } from '@/components/ui/Fields';
 import { formatDate, formatInr } from '@/utils/format';
 import { haversineKm } from '@/utils/geo';
 import { priorityLabel, taskStatusLabel, taskStatusOrder } from '@/utils/labels';
+import { TaskBoard } from '@/components/operations/TaskBoard';
 import type { Task, TaskStatus } from '@/types';
 
 const ASSIGNABLE: TaskStatus[] = ['open', 'assigned'];
@@ -26,6 +27,7 @@ export function TasksPage() {
   const state = useAsync(() => api.listTasks({ customerId }), [customerId]);
   const dir = useDirectory();
 
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [status, setStatus] = useState<TaskStatus | 'all'>('all');
   const [query, setQuery] = useState('');
   const [assigning, setAssigning] = useState<Task | null>(null);
@@ -52,7 +54,7 @@ export function TasksPage() {
     setBusy(true);
     try {
       await api.assignTask(assigning.id, pick);
-      notify(`${assigning.id} assigned to ${dir.employeeName(pick)} (demo state only).`);
+      notify(`${assigning.id} assigned to ${dir.employeeName(pick)}.`);
       setAssigning(null);
       setPick('');
       state.reload();
@@ -66,18 +68,49 @@ export function TasksPage() {
   return (
     <>
       <PageHeader
-        title={isCustomer ? 'My requests' : 'Tasks'}
-        description={isCustomer ? 'Tasks requested by your organisation and their progress.' : 'Create, assign and track field tasks.'}
+        title={isCustomer ? 'My requests' : 'Field Operations Task Board'}
+        description={isCustomer ? 'Tasks requested by your organisation and their progress.' : 'Visual lifecycle management, employee assignment, and status dispatch.'}
         actions={
-          <>
-            <DemoTag />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="view-toggle" role="group" aria-label="Task layout view">
+              <button
+                type="button"
+                className={`view-toggle__btn ${viewMode === 'board' ? 'view-toggle__btn--active' : ''}`}
+                onClick={() => setViewMode('board')}
+                title="Kanban Board view"
+                aria-pressed={viewMode === 'board'}
+              >
+                <LayoutGrid size={15} aria-hidden />
+                <span>Board</span>
+              </button>
+              <button
+                type="button"
+                className={`view-toggle__btn ${viewMode === 'list' ? 'view-toggle__btn--active' : ''}`}
+                onClick={() => setViewMode('list')}
+                title="Table List view"
+                aria-pressed={viewMode === 'list'}
+              >
+                <List size={15} aria-hidden />
+                <span>List</span>
+              </button>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<RotateCcw size={14} />}
+              onClick={state.reload}
+              title="Refresh task records"
+              aria-label="Refresh tasks"
+            >
+              Refresh
+            </Button>
             {can('createTasks') && (
               <Link to="/tasks/new" className="btn btn--primary btn--md">
                 <span className="btn__icon" aria-hidden><Plus size={16} /></span>
                 Create task
               </Link>
             )}
-          </>
+          </div>
         }
       />
 
@@ -100,7 +133,18 @@ export function TasksPage() {
         <Async state={state} skeletonLines={6}>
           {() =>
             visible.length === 0 ? (
-              <EmptyState title="No tasks found" description="Adjust the filters to see more tasks." />
+              <EmptyState title="No tasks found" description="Adjust your filters or search keywords to view tasks." />
+            ) : viewMode === 'board' ? (
+              <TaskBoard
+                tasks={visible}
+                canAssign={can('assignTasks')}
+                onAssignTask={(t) => {
+                  setAssigning(t);
+                  setPick(t.assigneeId ?? '');
+                }}
+                employeeName={dir.employeeName}
+                customerName={dir.customerName}
+              />
             ) : (
               <div className="table-wrap" role="region" aria-label="Tasks" tabIndex={0}>
                 <table className="table table--stack">
