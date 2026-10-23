@@ -112,13 +112,13 @@ export const ActiveTaskScreen: React.FC<ActiveTaskScreenProps> = ({
         {
           storagePath: `evidence/${task.id}/hud_${Date.now()}.jpg`,
           fileName: `evidence_${task.id}.jpg`,
-          caption: `GPS Verified (${evidenceCaptured.lat}, ${evidenceCaptured.lng}) at ${evidenceCaptured.timestamp}`,
+          caption: `GPS Verified (${evidenceCaptured.lat.toFixed(4)}, ${evidenceCaptured.lng.toFixed(4)}) at ${evidenceCaptured.timestamp}`,
         },
         user?.token
       );
       Alert.alert(
         'Evidence Submitted for Operations Review',
-        `Task bounty of ₹${task.rewardInr} has been submitted for review. Reward credits once Operations Manager approves.`,
+        `Task bounty of ₹${task.rewardInr} has been submitted for review. Reward releases once the Operations Manager reviews and approves the evidence.`,
       );
       onTaskCompleted();
     } catch (err: any) {

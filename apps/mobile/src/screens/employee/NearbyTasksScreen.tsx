@@ -65,6 +65,16 @@ export const NearbyTasksScreen: React.FC<NearbyTasksScreenProps> = ({
     Alert.alert('GPS Fix Synced', `Device coordinates:\n${updated.lat.toFixed(5)}° N, ${updated.lng.toFixed(5)}° E (±${updated.accuracy}m)\nCluster: Tenali Central`);
   };
 
+  const handleReject = async (task: Task) => {
+    try {
+      await mobileApi.rejectTask(task.id);
+      setTasks(tasks.filter((t) => t.id !== task.id));
+      Alert.alert('Task Declined', `Task "${task.title}" has been dismissed from your nearby dispatch queue.`);
+    } catch {
+      Alert.alert('Action Failed', 'Could not decline task. Please check network connectivity.');
+    }
+  };
+
   const openNearbyTasks = tasks.filter(
     (t) => (t.status === 'open' || t.status === 'assigned') && (t.distanceKm ?? 1) <= radiusKm,
   );
@@ -156,9 +166,14 @@ export const NearbyTasksScreen: React.FC<NearbyTasksScreenProps> = ({
                   <Text style={styles.rewardAmount}>₹{task.rewardInr}</Text>
                 </View>
 
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => onAcceptTask(task)}>
-                  <Text style={styles.acceptBtnText}>Accept Task →</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  <TouchableOpacity style={styles.acceptBtn} onPress={() => onAcceptTask(task)}>
+                    <Text style={styles.acceptBtnText}>Accept Task →</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.declineBtn} onPress={() => handleReject(task)}>
+                    <Text style={styles.declineBtnText}>Decline</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))
@@ -333,5 +348,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  declineBtn: {
+    backgroundColor: colors.navyMedium,
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  declineBtnText: {
+    color: colors.textLightMuted,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

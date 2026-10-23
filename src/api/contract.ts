@@ -32,6 +32,7 @@ export interface ChaseHorseApi {
   createTask(input: NewTaskInput): Promise<Task>;
   assignTask(taskId: string, employeeId: string): Promise<Task>;
   acceptTask(taskId: string): Promise<Task>;
+  rejectTask(taskId: string, reason?: string): Promise<Task>;
 
   listEmployees(): Promise<Employee[]>;
   setEmployeeApproval(

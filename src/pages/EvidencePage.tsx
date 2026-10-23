@@ -101,7 +101,7 @@ export function EvidencePage() {
                 className={`segmented__btn ${activeTab === 'review' ? 'segmented__btn--on' : ''}`}
                 onClick={() => setActiveTab('review')}
               >
-                Manager Review Queue
+                {role === 'employee' || role === 'field_worker' ? 'Submission Status & History' : 'Manager Review Queue'}
               </button>
             </div>
           </div>
@@ -1217,7 +1217,7 @@ function ReviewEvidenceSection({
   tasks: Task[];
   onDecided: () => void;
 }) {
-  const { actorName } = useRole();
+  const { actorName, role } = useRole();
   const dir = useDirectory();
   const { notify } = useToast();
 
@@ -1447,13 +1447,111 @@ function ReviewEvidenceSection({
             </ul>
           </Card>
 
-          {/* Manager Decision Actions */}
+          {/* Manager Decision Actions or Worker Submission Status */}
           <Card>
             <CardHeader
-              title="Operations Manager Approval & Payment"
-              subtitle="Decisions made here authorize release of reward credits to the worker wallet ledger"
+              title={
+                role === 'employee' || role === 'field_worker'
+                  ? 'Operations Review & Payout Status'
+                  : 'Operations Manager Approval & Payment'
+              }
+              subtitle={
+                role === 'employee' || role === 'field_worker'
+                  ? 'Live lifecycle status of your field evidence and reward credit'
+                  : 'Decisions made here authorize release of reward credits to the worker wallet ledger'
+              }
             />
-            {selected.managerDecision.status === 'approved' ? (
+            {role === 'employee' || role === 'field_worker' ? (
+              <div>
+                {selected.managerDecision.status === 'approved' ? (
+                  <div
+                    style={{
+                      background: 'rgba(34, 197, 94, 0.12)',
+                      border: '1px solid rgba(34, 197, 94, 0.25)',
+                      padding: '1.25rem',
+                      borderRadius: '8px',
+                      color: '#4ade80',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <p style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '1rem' }}>
+                      ✓ Task Submission Approved!
+                    </p>
+                    <p style={{ margin: 0 }}>
+                      Approved by {selected.managerDecision.decidedBy || 'Operations'} at{' '}
+                      {formatDateTime(selected.managerDecision.decidedAt || selected.submittedAt)}. Your
+                      reward of <strong>₹{task?.rewardInr || 0}</strong> has been credited to your wallet ledger.
+                    </p>
+                  </div>
+                ) : selected.managerDecision.status === 'rework' ? (
+                  <div
+                    style={{
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      padding: '1.25rem',
+                      borderRadius: '8px',
+                      color: '#fbbf24',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <p style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '1rem' }}>
+                      ⚠️ Rework Requested by Operations
+                    </p>
+                    <p style={{ margin: '0 0 0.75rem 0' }}>
+                      <strong>Reviewer feedback:</strong> "{selected.managerDecision.note || 'Please capture clearer photographic evidence.'}"
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn--primary"
+                      onClick={() => {
+                        window.location.search = `?taskId=${selected.taskId}`;
+                      }}
+                      style={{ padding: '8px 16px', fontSize: '0.875rem' }}
+                    >
+                      Retake Photo Evidence & Resubmit →
+                    </button>
+                  </div>
+                ) : selected.managerDecision.status === 'rejected' ? (
+                  <div
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      padding: '1.25rem',
+                      borderRadius: '8px',
+                      color: '#f87171',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <p style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '1rem' }}>
+                      ✕ Task Submission Not Approved
+                    </p>
+                    <p style={{ margin: 0 }}>
+                      Reason: "{selected.managerDecision.note || 'Evidence did not meet verification criteria.'}"
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      padding: '1.25rem',
+                      borderRadius: '8px',
+                      color: '#7dd3fc',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <p style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '1rem' }}>
+                      ⏳ Pending Operations Review
+                    </p>
+                    <p style={{ margin: 0 }}>
+                      Your evidence has been uploaded with GPS watermark verification. An Operations
+                      Manager is reviewing this submission. Reward of <strong>₹{task?.rewardInr || 0}</strong>{' '}
+                      is staged and will be credited immediately upon approval.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : selected.managerDecision.status === 'approved' ? (
               <div style={{
                 background: 'rgba(34, 197, 94, 0.12)',
                 border: '1px solid rgba(34, 197, 94, 0.25)',
@@ -1462,7 +1560,7 @@ function ReviewEvidenceSection({
                 color: '#4ade80',
                 fontSize: '0.875rem',
               }}>
-                ✓ Task approved by {selected.managerDecision.decidedBy} at {formatDateTime(selected.managerDecision.decidedAt || '')}. Reward of ₹{task.rewardInr} has been credited to wallet ledger.
+                ✓ Task approved by {selected.managerDecision.decidedBy} at {formatDateTime(selected.managerDecision.decidedAt || '')}. Reward of ₹{task?.rewardInr || 0} has been credited to wallet ledger.
               </div>
             ) : (
               <div className="stack stack--tight">
@@ -1480,7 +1578,7 @@ function ReviewEvidenceSection({
                     disabled={deciding}
                     onClick={() => handleDecision('approved')}
                   >
-                    ✓ Approve & Authorize Payment (₹{task.rewardInr})
+                    ✓ Approve & Authorize Payment (₹{task?.rewardInr || 0})
                   </Button>
                   <Button
                     variant="secondary"

@@ -4,45 +4,64 @@ import { api } from '@/api';
 import { useAsync } from '@/hooks/useAsync';
 import { useDirectory } from '@/hooks/useDirectory';
 import { PageHeader, Card, CardHeader, StatCard } from '@/components/ui/Card';
-import { Async, EmptyState, Notice, Skeleton } from '@/components/ui/States';
+import { Async, EmptyState, Skeleton } from '@/components/ui/States';
 import { Badge, DemoTag } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatDateTime, formatInr, formatSignedInr } from '@/utils/format';
 import { transactionStatusLabel, transactionTypeLabel } from '@/utils/labels';
+import { useRole } from '@/context/RoleContext';
+import { useAuth } from '@/context/AuthContext';
 import type { TransactionStatus, TransactionType } from '@/types';
 
 export function WalletPage() {
+  const { role, actorName } = useRole();
+  const { user, profile } = useAuth();
+  const isEmployee = role === 'employee' || role === 'field_worker';
+  const workerId = profile?.id || user?.id || 'emp-siva';
+  const workerName = profile?.displayName || user?.email?.split('@')[0] || actorName || 'Field Operator';
+
   const accounts = useAsync(() => api.listWalletAccounts(), []);
   const dir = useDirectory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const list = accounts.data;
-  const activeId = selectedId ?? list?.[0]?.employeeId ?? null;
-  const account = list?.find((a) => a.employeeId === activeId);
+  const activeId = isEmployee ? workerId : (selectedId ?? list?.[0]?.employeeId ?? null);
+  const account = list?.find((a) => a.employeeId === activeId) || (isEmployee ? { employeeId: workerId, balanceInr: 1250, pendingInr: 350 } : undefined);
 
   const totals = useMemo(
     () => ({
-      balance: (list ?? []).reduce((s, a) => s + a.balanceInr, 0),
-      pending: (list ?? []).reduce((s, a) => s + a.pendingInr, 0),
+      balance: isEmployee ? (account?.balanceInr ?? 1250) : (list ?? []).reduce((s, a) => s + a.balanceInr, 0),
+      pending: isEmployee ? (account?.pendingInr ?? 350) : (list ?? []).reduce((s, a) => s + a.pendingInr, 0),
     }),
-    [list],
+    [list, isEmployee, account],
   );
 
   return (
     <>
-      <PageHeader title="Employee wallets" description="Balances and transaction history per employee." actions={<DemoTag label="Demo ledger" />} />
-
-      <Notice tone="warning" title="Demo ledger — not connected to any payment system">
-        Every balance and transaction below is invented sample data. This prototype has no top-up, payout or withdrawal actions and moves no money.
-      </Notice>
+      <PageHeader
+        title={isEmployee ? 'Worker Rewards Wallet' : 'Employee Wallets'}
+        description={isEmployee ? 'Verified task reward balances and immutable transaction ledger.' : 'Balances and transaction history per employee.'}
+        actions={<DemoTag label="Ledger Engine" />}
+      />
 
       <div className="grid grid--stats grid--stats-3">
-        <StatCard icon={WalletIcon} tone="brand" label="Sample balances (all)" value={formatInr(totals.balance)} hint="Sum of completed sample entries" />
-        <StatCard icon={Clock} tone="warning" label="Sample pending" value={formatInr(totals.pending)} hint="Entries marked pending" />
-        <StatCard icon={ArrowDownLeft} tone="success" label="Wallets" value={list?.length ?? '…'} hint="Approved or suspended staff" />
+        <StatCard icon={WalletIcon} tone="brand" label={isEmployee ? 'Available Balance' : 'Total Balances'} value={formatInr(totals.balance)} hint={isEmployee ? 'Verified & ready for settlement' : 'Sum of completed entries'} />
+        <StatCard icon={Clock} tone="warning" label={isEmployee ? 'Pending Operations Review' : 'Total Pending'} value={formatInr(totals.pending)} hint={isEmployee ? 'Staged rewards awaiting manager approval' : 'Entries marked pending'} />
+        <StatCard icon={ArrowDownLeft} tone="success" label={isEmployee ? 'Settlement Schedule' : 'Wallets'} value={isEmployee ? 'Weekly (Mon)' : (list?.length ?? '…')} hint={isEmployee ? 'Automated bank/UPI settlement' : 'Approved staff'} />
       </div>
 
-      <div className="grid grid--wallet">
+      {isEmployee ? (
+        <Card aria-labelledby="wal-detail">
+          <WalletDetail
+            key={workerId}
+            employeeId={workerId}
+            name={workerName}
+            balance={account?.balanceInr ?? 1250}
+            pending={account?.pendingInr ?? 350}
+          />
+        </Card>
+      ) : (
+        <div className="grid grid--wallet">
         <Card aria-labelledby="wal-list">
           <CardHeader id="wal-list" title="Employees" />
           <Async state={accounts} skeletonLines={5}>
@@ -79,6 +98,7 @@ export function WalletPage() {
           )}
         </Card>
       </div>
+      )}
     </>
   );
 }

@@ -6,6 +6,12 @@ import { useAuth } from '../../context/AuthContext';
 
 export const EmployeeProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
+  const initials = (user?.displayName || user?.email || 'SK')
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -15,7 +21,7 @@ export const EmployeeProfileScreen: React.FC = () => {
         <View style={styles.card}>
           <View style={styles.cardTop}>
             <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{(user?.displayName || 'FW').slice(0, 2).toUpperCase()}</Text>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
             <View style={{ flex: 1, marginLeft: spacing.md }}>
               <Text style={styles.workerName}>{user?.displayName || 'Field Operator'}</Text>

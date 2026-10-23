@@ -23,6 +23,8 @@ import { CustomerProfilePage } from '@/pages/CustomerProfilePage';
 import { CustomerSupportPage } from '@/pages/CustomerSupportPage';
 import { CustomerTasksPage } from '@/pages/CustomerTasksPage';
 import { CustomerTaskDetailsPage } from '@/pages/CustomerTaskDetailsPage';
+import { EmployeeDashboardPage } from '@/pages/EmployeeDashboardPage';
+import { EmployeeProfilePage } from '@/pages/EmployeeProfilePage';
 
 export default function App() {
   return (
@@ -55,7 +57,8 @@ export default function App() {
                   <Route path="customer/profile" element={<CustomerProfilePage />} />
                   <Route path="customer/support" element={<CustomerSupportPage />} />
                   <Route path="customer/history" element={<CustomerTasksPage />} />
-                  <Route path="employee/dashboard" element={<OverviewPage />} />
+                  <Route path="employee/dashboard" element={<EmployeeDashboardPage />} />
+                  <Route path="employee/profile" element={<EmployeeProfilePage />} />
 
                   {/* Core Field Task Execution Engine */}
                   <Route path="nearby" element={<NearbyPage />} />

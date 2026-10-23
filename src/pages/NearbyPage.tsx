@@ -29,6 +29,7 @@ export function NearbyPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'active'>('open');
   const [viewMode, setViewMode] = useState<'cards' | 'radar'>('cards');
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
 
   // Fetch initial GPS on mount
   const refreshLocation = async () => {
@@ -85,6 +86,19 @@ export function NearbyPage() {
       notify(err instanceof Error ? err.message : 'Failed to accept task', 'info');
     } finally {
       setAcceptingId(null);
+    }
+  };
+
+  const handleRejectTask = async (task: Task) => {
+    setRejectingId(task.id);
+    try {
+      await api.rejectTask(task.id, 'Declined by field worker');
+      notify(`Task "${task.title}" declined and removed from dispatch queue.`);
+      tasksState.reload();
+    } catch (err: unknown) {
+      notify(err instanceof Error ? err.message : 'Failed to decline task', 'info');
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -307,15 +321,27 @@ export function NearbyPage() {
 
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {t.status === 'open' ? (
-                          <button
-                            type="button"
-                            disabled={acceptingId === t.id}
-                            onClick={() => handleAcceptTask(t)}
-                            className="btn btn--primary"
-                            style={{ flex: 1, padding: '9px 12px', fontSize: '0.875rem' }}
-                          >
-                            {acceptingId === t.id ? 'Accepting...' : 'Accept Task'}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              disabled={acceptingId === t.id || rejectingId === t.id}
+                              onClick={() => handleAcceptTask(t)}
+                              className="btn btn--primary"
+                              style={{ flex: 2, padding: '9px 12px', fontSize: '0.875rem' }}
+                            >
+                              {acceptingId === t.id ? 'Accepting...' : 'Accept Task'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={acceptingId === t.id || rejectingId === t.id}
+                              onClick={() => handleRejectTask(t)}
+                              className="btn btn--secondary"
+                              style={{ flex: 1, padding: '9px 12px', fontSize: '0.875rem' }}
+                              title="Decline this task from your nearby list"
+                            >
+                              {rejectingId === t.id ? 'Declining...' : 'Decline'}
+                            </button>
+                          </>
                         ) : (
                           <button
                             type="button"
