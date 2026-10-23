@@ -263,7 +263,44 @@ export const mobileApi = {
     return newTask;
   },
 
-  async acceptTask(taskId: string, employeeId: string): Promise<Task> {
+  async acceptTask(taskId: string, employeeId?: string): Promise<Task> {
+    try {
+      const res = await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'IN_PROGRESS' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const idx = clientTasks.findIndex((t) => t.id === taskId);
+        if (idx !== -1) {
+          clientTasks[idx] = { ...clientTasks[idx], status: 'in_progress', assigneeId: employeeId };
+        }
+        return {
+          id: data.id,
+          title: data.title || 'Field Task',
+          description: data.description || '',
+          category: data.category || 'Shelf audit',
+          status: 'in_progress',
+          priority: data.priority?.toLowerCase() || 'normal',
+          customerId: data.customerId || 'cust-retail',
+          location: {
+            lat: Number(data.locationLat) || 16.2418,
+            lng: Number(data.locationLng) || 80.6448,
+            area: data.locationArea || 'Operational Zone',
+            address: data.locationAddress || 'Field Site',
+          },
+          dueAt: data.dueAt || new Date().toISOString(),
+          createdAt: data.createdAt || new Date().toISOString(),
+          rewardInr: Number(data.rewardAmount) || 350,
+          checklistTemplateId: data.checklistTemplateId || 'chk-shelf',
+          distanceKm: 1.2,
+        };
+      }
+    } catch {
+      // Remote unavailable, fall back to local client cache
+    }
+
     const idx = clientTasks.findIndex((t) => t.id === taskId);
     if (idx !== -1) {
       clientTasks[idx] = {
@@ -276,25 +313,56 @@ export const mobileApi = {
     throw new Error('Task not found');
   },
 
-  async submitEvidence(taskId: string, evidenceNotes: string): Promise<{ success: boolean; aiResult: string }> {
+  async submitEvidence(
+    taskId: string,
+    evidenceNotes: string,
+    metadata?: {
+      locationLat?: number;
+      locationLng?: number;
+      storagePath?: string;
+    },
+  ): Promise<{ success: boolean; status: string; notes?: string }> {
+    try {
+      const res = await fetch(`${BASE_URL}/evidence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId,
+          storagePath: metadata?.storagePath || `evidence/${taskId}/photo.jpg`,
+          fileName: `evidence_${taskId}.jpg`,
+          contentType: 'image/jpeg',
+          caption: evidenceNotes,
+          locationLat: metadata?.locationLat || 16.2418,
+          locationLng: metadata?.locationLng || 80.6448,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const idx = clientTasks.findIndex((t) => t.id === taskId);
+        if (idx !== -1) {
+          clientTasks[idx].status = 'submitted';
+        }
+        return {
+          success: true,
+          status: data.verificationStatus || 'PENDING_REVIEW',
+          notes: data.verificationNotes || 'Submitted to Operations Review queue',
+        };
+      }
+    } catch {
+      // Backend unavailable, use client cache
+    }
+
     const idx = clientTasks.findIndex((t) => t.id === taskId);
     if (idx !== -1) {
       clientTasks[idx] = {
         ...clientTasks[idx],
         status: 'submitted',
       };
-      clientWallet.unshift({
-        id: `TXN-${Date.now()}`,
-        type: 'HOLD',
-        amount: clientTasks[idx].rewardInr,
-        description: `Pending Review: ${clientTasks[idx].title}`,
-        createdAt: 'Just now',
-        status: 'PENDING',
-      });
     }
     return {
       success: true,
-      aiResult: 'PASSED (96.4% Confidence) - GPS matched within 24m, timestamp confirmed, watermark verified.',
+      status: 'PENDING_REVIEW',
+      notes: 'Submitted for Operations Manager review and reward authorization.',
     };
   },
 
@@ -314,6 +382,15 @@ export const mobileApi = {
   },
 
   async rejectTask(taskId: string): Promise<void> {
+    try {
+      await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'REJECTED' }),
+      });
+    } catch {
+      // Remote unavailable
+    }
     const idx = clientTasks.findIndex((t) => t.id === taskId);
     if (idx !== -1) {
       clientTasks[idx].status = 'rejected';
@@ -324,7 +401,27 @@ export const mobileApi = {
     return TRUCK_PLANS;
   },
 
-  getWalletTransactions(): WalletTransaction[] {
+  async getWalletTransactions(employeeId?: string): Promise<WalletTransaction[]> {
+    if (employeeId) {
+      try {
+        const res = await fetch(`${BASE_URL}/wallets/${employeeId}/transactions`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            return data.map((t: any) => ({
+              id: t.id || `TXN-${Math.random()}`,
+              type: (t.type || 'CREDIT').toUpperCase() as any,
+              amount: Number(t.amountInr || t.amount) || 0,
+              description: t.reference || t.description || 'Task Reward Credit',
+              createdAt: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-IN') : 'Recent',
+              status: (t.status || 'COMPLETED').toUpperCase() as any,
+            }));
+          }
+        }
+      } catch {
+        // Fall back to clientWallet
+      }
+    }
     return clientWallet;
   },
 

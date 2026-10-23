@@ -80,10 +80,18 @@ export const ActiveTaskScreen: React.FC<ActiveTaskScreenProps> = ({
       return;
     }
 
-    const res = await mobileApi.submitEvidence(task.id, 'Storefront photo with stamped GPS watermark');
+    const res = await mobileApi.submitEvidence(
+      task.id,
+      `Field photo evidence captured at (${evidenceCaptured.lat.toFixed(4)}, ${evidenceCaptured.lng.toFixed(4)})`,
+      {
+        locationLat: evidenceCaptured.lat,
+        locationLng: evidenceCaptured.lng,
+      },
+    );
+
     Alert.alert(
       'Evidence Submitted for Operations Review',
-      `Gemini AI Verification: ${res.aiResult}\n\nTask bounty of ₹${task.rewardInr} has been staged in your wallet under PENDING APPROVAL. Reward credits once Operations Manager approves.`,
+      `Status: ${res.status}\n\n${res.notes}\n\nTask bounty of ₹${task.rewardInr} has been submitted. Reward releases once the Operations Manager reviews and approves the evidence.`,
     );
     onTaskCompleted();
   };

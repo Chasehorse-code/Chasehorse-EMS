@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { colors, spacing, radius } from '../../theme';
 import { Header } from '../../components/ui/Header';
@@ -14,9 +16,23 @@ import type { WalletTransaction } from '../../types';
 
 export const WalletScreen: React.FC = () => {
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadTransactions = async () => {
+    try {
+      const res = await mobileApi.getWalletTransactions();
+      setTxns(res);
+    } catch {
+      // Fallback
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    setTxns(mobileApi.getWalletTransactions());
+    loadTransactions();
   }, []);
 
   const completedTotal = txns
@@ -37,7 +53,19 @@ export const WalletScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header title="Worker Wallet & Ledger" subtitle="Immutable Reward Accounting & Operations Approvals" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadTransactions();
+            }}
+            tintColor={colors.blueAccent}
+          />
+        }
+      >
         {/* Balances Card */}
         <View style={styles.balanceCard}>
           <View style={styles.balanceRow}>
@@ -63,34 +91,42 @@ export const WalletScreen: React.FC = () => {
         {/* Ledger Transactions */}
         <Text style={styles.sectionHeading}>TRANSACTION AUDIT LEDGER</Text>
 
-        {txns.map((t) => (
-          <View key={t.id} style={styles.txnCard}>
-            <View style={styles.txnTop}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.txnTitle}>{t.description}</Text>
-                <Text style={styles.txnDate}>{t.createdAt}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text
-                  style={[
-                    styles.txnAmount,
-                    t.status === 'COMPLETED' ? { color: colors.success } : { color: colors.warning },
-                  ]}
-                >
-                  {t.status === 'COMPLETED' ? `+₹${t.amount}` : `₹${t.amount}`}
-                </Text>
-                <Text
-                  style={[
-                    styles.statusTag,
-                    t.status === 'COMPLETED' ? styles.statusCompleted : styles.statusPending,
-                  ]}
-                >
-                  {t.status}
-                </Text>
+        {loading ? (
+          <ActivityIndicator color={colors.blueAccent} style={{ marginVertical: spacing.xl }} />
+        ) : txns.length === 0 ? (
+          <View style={{ padding: spacing.xl, alignItems: 'center' }}>
+            <Text style={{ color: colors.textLightMuted }}>No transactions recorded in ledger yet.</Text>
+          </View>
+        ) : (
+          txns.map((t) => (
+            <View key={t.id} style={styles.txnCard}>
+              <View style={styles.txnTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.txnTitle}>{t.description}</Text>
+                  <Text style={styles.txnDate}>{t.createdAt}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text
+                    style={[
+                      styles.txnAmount,
+                      t.status === 'COMPLETED' ? { color: colors.success } : { color: colors.warning },
+                    ]}
+                  >
+                    {t.status === 'COMPLETED' ? `+₹${t.amount}` : `₹${t.amount}`}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.statusTag,
+                      t.status === 'COMPLETED' ? styles.statusCompleted : styles.statusPending,
+                    ]}
+                  >
+                    {t.status}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );

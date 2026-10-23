@@ -99,7 +99,7 @@ export function LoginView({ onSwitchView, onClose, initialEmail = '', initialMes
       } else if (primaryRole === 'customer') {
         navigate('/customer/dashboard', { replace: true });
       } else {
-        navigate('/nearby', { replace: true });
+        navigate('/employee/dashboard', { replace: true });
       }
     }, 1200);
   };
