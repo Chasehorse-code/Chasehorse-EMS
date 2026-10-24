@@ -71,6 +71,7 @@ export interface ChaseHorseApi {
     stage: Exclude<ApprovalStage, 'awaiting_ops'>,
     note: string,
     actor: Actor,
+    reworkInstructions?: string,
   ): Promise<ApprovalRequest>;
 
   listWalletAccounts(): Promise<WalletAccount[]>;
