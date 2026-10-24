@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { colors, spacing, radius } from '../../theme';
+import { useAuth } from '../../context/AuthContext';
 import { Header } from '../../components/ui/Header';
 import { mobileApi } from '../../api/restApi';
 import type { Task, TaskCategory, TaskPriority } from '../../types';
@@ -19,6 +20,7 @@ interface CreateTaskScreenProps {
 }
 
 export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ onBack, onTaskCreated }) => {
+  const { user } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
   // Step 1: Details
@@ -35,7 +37,9 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ onBack, onTa
   // Step 3: Reward
   const [rewardInr, setRewardInr] = useState('450');
 
-  // Step 4: Checklist
+  // Step 4: Checklist & Templates
+  const [templates, setTemplates] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('11111111-1111-1111-1111-111111111111');
   const [checklist, setChecklist] = useState<string[]>([
     'Verify storefront or physical facility presence',
     'Capture unobstructed wide-angle photo of asset/signage',
@@ -47,6 +51,15 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ onBack, onTa
   // Step 5: Submission state
   const [loading, setLoading] = useState(false);
   const [createdTask, setCreatedTask] = useState<Task | null>(null);
+
+  React.useEffect(() => {
+    mobileApi.listChecklistTemplates(user?.token).then((res) => {
+      if (res && res.length > 0) {
+        setTemplates(res);
+        setSelectedTemplateId(res[0].id);
+      }
+    }).catch(() => {});
+  }, [user?.token]);
 
   const handleAddItem = () => {
     if (newItemText.trim()) {
@@ -96,21 +109,24 @@ export const CreateTaskScreen: React.FC<CreateTaskScreenProps> = ({ onBack, onTa
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const task = await mobileApi.createTask({
-        title,
-        description,
-        category,
-        priority,
-        customerId: 'cust-apex',
-        areaKey: area,
-        address,
-        dueAt: new Date(Date.now() + 48 * 3600000).toISOString(),
-        rewardInr: Number(rewardInr) || 450,
-        checklistTemplateId: 'chk-custom',
-        locationLat: 16.2418,
-        locationLng: 80.6448,
-        checklistItems: checklist,
-      });
+      const task = await mobileApi.createTask(
+        {
+          title,
+          description,
+          category,
+          priority,
+          customerId: user?.id || '',
+          areaKey: area,
+          address,
+          dueAt: new Date(Date.now() + 48 * 3600000).toISOString(),
+          rewardInr: Number(rewardInr) || 450,
+          checklistTemplateId: selectedTemplateId,
+          locationLat: 16.2418,
+          locationLng: 80.6448,
+          checklistItems: checklist,
+        },
+        user?.token
+      );
 
       setCreatedTask(task);
       onTaskCreated(task);

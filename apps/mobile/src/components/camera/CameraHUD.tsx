@@ -44,8 +44,8 @@ export const CameraHUD: React.FC<CameraHUDProps> = ({
 
     setTimeout(() => {
       setAnalyzingAi(false);
-      setAiResult('PASSED (96.8% Confidence) • Geofence & Signboard verified');
-    }, 1200);
+      setAiResult('PENDING REVIEW • Geotag recorded, awaiting backend AI pipeline');
+    }, 600);
   };
 
   const handleConfirmSubmit = () => {
@@ -53,9 +53,12 @@ export const CameraHUD: React.FC<CameraHUDProps> = ({
       lat,
       lng,
       timestamp,
-      aiScore: aiResult || 'PASSED',
+      aiScore: aiResult || 'PENDING REVIEW',
     });
-    Alert.alert('Evidence Verified & Staged', 'Geo-tagged photograph and Gemini AI audit pass have been attached to the task checklist.');
+    Alert.alert(
+      'Evidence Staged',
+      'Geo-tagged photograph and capture metadata have been attached to the task checklist. Verification will be evaluated by Operations upon submission.'
+    );
     onClose();
   };
 

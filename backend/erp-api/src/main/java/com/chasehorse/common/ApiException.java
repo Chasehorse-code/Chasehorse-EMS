@@ -27,6 +27,10 @@ public class ApiException extends RuntimeException {
         return new ApiException(HttpStatus.NOT_FOUND, entity + " not found: " + id);
     }
 
+    public static ApiException notFound(String message) {
+        return new ApiException(HttpStatus.NOT_FOUND, message);
+    }
+
     public static ApiException forbidden(String reason) {
         return new ApiException(HttpStatus.FORBIDDEN, reason);
     }

@@ -13,6 +13,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, rightAction }) 
   const { user, role, signOut } = useAuth();
 
   const getRoleLabel = () => {
+    if (role === 'admin') return 'System Administrator';
     if (role === 'customer') return 'Customer';
     if (role === 'employee') return 'On-Field Worker';
     if (role === 'manager') return 'Operations Manager';

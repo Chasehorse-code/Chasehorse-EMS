@@ -8,10 +8,11 @@ import {
   RefreshControl,
 } from 'react-native';
 import { colors, spacing, radius } from '../../theme';
+import { useAuth } from '../../context/AuthContext';
 import { Header } from '../../components/ui/Header';
 import { Badge } from '../../components/ui/Badge';
 import { mobileApi } from '../../api/restApi';
-import type { Task } from '../../types';
+import type { Task, DashboardStats } from '../../types';
 
 interface CustomerDashboardScreenProps {
   onNavigateToCreateTask: () => void;
@@ -26,17 +27,27 @@ export const CustomerDashboardScreen: React.FC<CustomerDashboardScreenProps> = (
   onNavigateToTransport,
   onSelectTask,
 }) => {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
-    const list = await mobileApi.listTasks({ customerId: 'cust-apex' });
-    setTasks(list);
+    try {
+      const [list, dashboardStats] = await Promise.all([
+        mobileApi.listTasks(user?.id ? { customerId: user.id } : undefined, user?.token),
+        mobileApi.getDashboardStats(user?.id, user?.token).catch(() => null),
+      ]);
+      setTasks(list || []);
+      setStats(dashboardStats);
+    } catch {
+      setTasks([]);
+    }
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user?.id, user?.token]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -44,11 +55,14 @@ export const CustomerDashboardScreen: React.FC<CustomerDashboardScreenProps> = (
     setRefreshing(false);
   };
 
-  const totalTasks = tasks.length || 24;
-  const openTasks = tasks.filter((t) => t.status === 'open').length || 8;
-  const inProgressTasks = tasks.filter((t) => t.status === 'in_progress' || t.status === 'assigned').length || 5;
-  const awaitingReviewTasks = tasks.filter((t) => t.status === 'submitted' || t.status === 'in_review').length || 6;
-  const completedTasks = tasks.filter((t) => t.status === 'approved').length || 5;
+  const totalTasks = stats?.totalTasks ?? tasks.length;
+  const openTasks = stats?.openTasks ?? tasks.filter((t) => t.status === 'open').length;
+  const inProgressTasks = stats?.inProgress ?? tasks.filter((t) => t.status === 'in_progress' || t.status === 'assigned').length;
+  const awaitingReviewTasks = stats?.awaitingReview ?? tasks.filter((t) => t.status === 'submitted' || t.status === 'in_review').length;
+  const completedTasks = stats?.approvedTotal ?? tasks.filter((t) => t.status === 'approved').length;
+
+  const customerName = user?.displayName || user?.email?.split('@')[0] || 'Valued Partner';
+  const companyTitle = user?.companyName ? `${user.companyName} • Field Operations` : 'Commercial Field Operations';
 
   return (
     <View style={styles.container}>
@@ -61,10 +75,8 @@ export const CustomerDashboardScreen: React.FC<CustomerDashboardScreenProps> = (
         <View style={styles.heroBanner}>
           <View style={styles.heroTextGroup}>
             <Text style={styles.heroPre}>WELCOME BACK</Text>
-            <Text style={styles.heroTitle}>Hello, Rahul Kumar!</Text>
-            <Text style={styles.heroSub}>
-              Apex Retail Brands • Pan-India Field Operations
-            </Text>
+            <Text style={styles.heroTitle}>Hello, {customerName}!</Text>
+            <Text style={styles.heroSub}>{companyTitle}</Text>
           </View>
           <TouchableOpacity style={styles.createTaskHeroBtn} onPress={onNavigateToCreateTask}>
             <Text style={styles.createTaskHeroBtnText}>+ Create Task</Text>
@@ -77,13 +89,13 @@ export const CustomerDashboardScreen: React.FC<CustomerDashboardScreenProps> = (
           <View style={[styles.kpiCard, { borderColor: '#38BDF8' }]}>
             <Text style={styles.kpiLabel}>Total Tasks</Text>
             <Text style={styles.kpiVal}>{totalTasks}</Text>
-            <Text style={styles.kpiTrend}>↑ 12% vs last month</Text>
+            <Text style={styles.kpiTrend}>Live platform total</Text>
           </View>
 
           <View style={[styles.kpiCard, { borderColor: '#60A5FA' }]}>
             <Text style={styles.kpiLabel}>Open Tasks</Text>
             <Text style={[styles.kpiVal, { color: '#60A5FA' }]}>{openTasks}</Text>
-            <Text style={styles.kpiTrend}>↑ 8% active</Text>
+            <Text style={styles.kpiTrend}>Awaiting assignment</Text>
           </View>
 
           <View style={[styles.kpiCard, { borderColor: '#3B82F6' }]}>
@@ -95,13 +107,13 @@ export const CustomerDashboardScreen: React.FC<CustomerDashboardScreenProps> = (
           <View style={[styles.kpiCard, { borderColor: '#F59E0B' }]}>
             <Text style={styles.kpiLabel}>Awaiting Review</Text>
             <Text style={[styles.kpiVal, { color: '#FBBF24' }]}>{awaitingReviewTasks}</Text>
-            <Text style={styles.kpiTrend}>AI checks staged</Text>
+            <Text style={styles.kpiTrend}>Evidence staged</Text>
           </View>
 
           <View style={[styles.kpiCard, { borderColor: '#10B981' }]}>
             <Text style={styles.kpiLabel}>Completed</Text>
             <Text style={[styles.kpiVal, { color: '#34D399' }]}>{completedTasks}</Text>
-            <Text style={styles.kpiTrend}>↑ 40% verified</Text>
+            <Text style={styles.kpiTrend}>Verified & approved</Text>
           </View>
         </ScrollView>
 

@@ -23,6 +23,15 @@ public class ProfileController {
     /* ---- DTOs ---- */
     public record SetStatusRequest(@NotBlank String status) {}
     public record AssignRoleRequest(@NotBlank String role) {}
+    public record UpdateProfileRequest(String displayName, String phone, String region, String avatarUrl) {}
+
+    @PutMapping("/me")
+    public ProfileService.ProfileView updateOwnProfile(
+            @RequestBody UpdateProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        return profileService.updateProfile(actorId, request.displayName(), request.phone(), request.region(), request.avatarUrl());
+    }
 
     @GetMapping
     @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS')")

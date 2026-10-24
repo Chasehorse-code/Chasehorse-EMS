@@ -37,4 +37,19 @@ public class RoleAuthorization {
         );
         return roles.stream().map(role -> role.toUpperCase(Locale.ROOT)).anyMatch(allowed::contains);
     }
+
+    public java.util.List<String> getRoles(String userId) {
+        if (userId == null || userId.isBlank()) return java.util.List.of();
+        return jdbc.query(
+            "select role from app_role_assignments where user_id = cast(? as uuid)",
+            (rs, rowNum) -> rs.getString("role"),
+            userId
+        );
+    }
+
+    public boolean hasRole(String userId, String role) {
+        if (userId == null || userId.isBlank() || role == null) return false;
+        return getRoles(userId).stream()
+            .anyMatch(r -> r.equalsIgnoreCase(role));
+    }
 }

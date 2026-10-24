@@ -13,13 +13,18 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import com.chasehorse.auth.RoleAuthorization;
+import com.chasehorse.common.ApiException;
+
 @RestController
 @RequestMapping("/api/v1/employees")
 public class EmployeeController {
     private final JdbcTemplate jdbc;
+    private final RoleAuthorization roleAuth;
 
-    public EmployeeController(JdbcTemplate jdbc) {
+    public EmployeeController(JdbcTemplate jdbc, RoleAuthorization roleAuth) {
         this.jdbc = jdbc;
+        this.roleAuth = roleAuth;
     }
 
     public record EmployeeView(
@@ -82,8 +87,33 @@ public class EmployeeController {
     ) {
         UUID actorId = jwt != null ? UUID.fromString(jwt.getSubject()) : null;
 
-        // 1. Update account status
-        jdbc.update("""
+        // 1. Prevent self-approval / self-escalation
+        if (actorId != null && actorId.equals(employeeId)) {
+            throw ApiException.forbidden("You cannot approve, reject, or modify your own account status or roles");
+        }
+
+        // 2. Validate caller permissions for role assignment before performing any mutation
+        if (request.role() != null && !request.role().isBlank()) {
+            boolean isAdmin = actorId != null && roleAuth.hasRole(actorId.toString(), "ADMIN");
+            if (!isAdmin) {
+                throw ApiException.forbidden("Only administrators can assign or modify application roles");
+            }
+
+            var validRoles = List.of("ADMIN", "MANAGER", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "PARTNER", "FIELD_WORKER");
+            if (!validRoles.contains(request.role().toUpperCase())) {
+                throw ApiException.badRequest("Invalid role: " + request.role());
+            }
+        }
+
+        // 3. Verify target account exists
+        var targetExists = jdbc.query("SELECT id, account_status FROM app_profiles WHERE id = ?",
+            (rs, n) -> rs.getString("account_status"), employeeId);
+        if (targetExists.isEmpty()) {
+            throw ApiException.notFound("Employee", employeeId);
+        }
+
+        // 4. Update account status
+        int rowsUpdated = jdbc.update("""
             UPDATE app_profiles
             SET account_status = ?, updated_at = now()
             WHERE id = ?
@@ -91,21 +121,20 @@ public class EmployeeController {
             request.status().name(),
             employeeId
         );
+        if (rowsUpdated == 0) {
+            throw ApiException.notFound("Employee", employeeId);
+        }
 
-        // 2. If a role is specified and status is ACTIVE, assign or update the role
+        // 5. If role specified and status ACTIVE, insert role assignment
         if (request.role() != null && !request.role().isBlank() && request.status() == AccountStatus.ACTIVE) {
             String roleUpper = request.role().toUpperCase();
-            // Validate role
-            var validRoles = List.of("FIELD_WORKER", "DRIVER", "DISPATCHER", "WAREHOUSE_STAFF", "OPERATIONS", "EMPLOYEE", "CUSTOMER", "MANAGER");
-            if (validRoles.contains(roleUpper)) {
-                jdbc.update("""
-                    INSERT INTO app_role_assignments (user_id, role, granted_by)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT (user_id, role) DO NOTHING
-                    """,
-                    employeeId, roleUpper, actorId
-                );
-            }
+            jdbc.update("""
+                INSERT INTO app_role_assignments (user_id, role, granted_by)
+                VALUES (?, ?, ?)
+                ON CONFLICT (user_id, role) DO NOTHING
+                """,
+                employeeId, roleUpper, actorId
+            );
         }
 
         // Return updated employee

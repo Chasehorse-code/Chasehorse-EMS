@@ -39,9 +39,9 @@ public class ChecklistController {
     ) {}
 
     @GetMapping
-    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE')")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE', 'CUSTOMER', 'FIELD_WORKER')")
     public List<ChecklistTemplateView> listTemplates() {
-        return jdbc.query("""
+        var list = jdbc.query("""
             SELECT id, name, category, created_at, updated_at
             FROM checklist_templates ORDER BY name ASC
             """,
@@ -55,10 +55,12 @@ public class ChecklistController {
                 );
             }
         );
+
+        return list.isEmpty() ? getStandardTemplates() : list;
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE')")
+    @PreAuthorize("@roleAuthorization.hasAny(authentication, 'ADMIN', 'MANAGER', 'OPERATIONS', 'EMPLOYEE', 'CUSTOMER', 'FIELD_WORKER')")
     public ChecklistTemplateView getTemplate(@PathVariable UUID id) {
         var results = jdbc.query("""
             SELECT id, name, category, created_at, updated_at
@@ -138,5 +140,64 @@ public class ChecklistController {
                 VALUES (gen_random_uuid(), ?, ?, ?, ?, ?)
                 """, templateId, it.label(), it.required(), it.requiresPhoto(), order++);
         }
+    }
+
+    private List<ChecklistTemplateView> getStandardTemplates() {
+        return List.of(
+            new ChecklistTemplateView(
+                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                "Shelf audit", "Shelf audit",
+                List.of(
+                    new ChecklistItemView(UUID.randomUUID(), "Exterior & store entrance photo", true, true, 0),
+                    new ChecklistItemView(UUID.randomUUID(), "Verify shelf placement & SKU facing count", true, true, 1),
+                    new ChecklistItemView(UUID.randomUUID(), "Inspect promotional standee and discount signage", true, true, 2),
+                    new ChecklistItemView(UUID.randomUUID(), "Record product expiry date on top rack", true, false, 3),
+                    new ChecklistItemView(UUID.randomUUID(), "Confirm competitor pricing tag", false, false, 4)
+                ),
+                OffsetDateTime.now(), OffsetDateTime.now()
+            ),
+            new ChecklistTemplateView(
+                UUID.fromString("22222222-2222-2222-2222-222222222222"),
+                "Site survey", "Site survey",
+                List.of(
+                    new ChecklistItemView(UUID.randomUUID(), "Capture GPS geotagged perimeter photo", true, true, 0),
+                    new ChecklistItemView(UUID.randomUUID(), "Verify property boundary and access road width", true, false, 1),
+                    new ChecklistItemView(UUID.randomUUID(), "Inspect utility line proximity (power/water)", true, false, 2),
+                    new ChecklistItemView(UUID.randomUUID(), "Record store manager contact & signature", true, false, 3)
+                ),
+                OffsetDateTime.now(), OffsetDateTime.now()
+            ),
+            new ChecklistTemplateView(
+                UUID.fromString("33333333-3333-3333-3333-333333333333"),
+                "Signage check", "Signage check",
+                List.of(
+                    new ChecklistItemView(UUID.randomUUID(), "Photograph primary billboard / storefront sign", true, true, 0),
+                    new ChecklistItemView(UUID.randomUUID(), "Verify illumination & electrical cabling", true, true, 1),
+                    new ChecklistItemView(UUID.randomUUID(), "Report physical damage or vinyl peeling", false, false, 2)
+                ),
+                OffsetDateTime.now(), OffsetDateTime.now()
+            ),
+            new ChecklistTemplateView(
+                UUID.fromString("44444444-4444-4444-4444-444444444444"),
+                "Equipment inspection", "Equipment inspection",
+                List.of(
+                    new ChecklistItemView(UUID.randomUUID(), "Scan asset barcode / serial number", true, true, 0),
+                    new ChecklistItemView(UUID.randomUUID(), "Inspect casing, lock & seal integrity", true, true, 1),
+                    new ChecklistItemView(UUID.randomUUID(), "Record operating gauge / temperature reading", true, false, 2),
+                    new ChecklistItemView(UUID.randomUUID(), "Confirm safety shutoff switch functionality", true, false, 3)
+                ),
+                OffsetDateTime.now(), OffsetDateTime.now()
+            ),
+            new ChecklistTemplateView(
+                UUID.fromString("55555555-5555-5555-5555-555555555555"),
+                "Delivery proof", "Delivery proof",
+                List.of(
+                    new ChecklistItemView(UUID.randomUUID(), "Photograph package at delivery doorstep / loading bay", true, true, 0),
+                    new ChecklistItemView(UUID.randomUUID(), "Verify recipient identity and signature", true, false, 1),
+                    new ChecklistItemView(UUID.randomUUID(), "Confirm tamper-evident seal is intact", true, false, 2)
+                ),
+                OffsetDateTime.now(), OffsetDateTime.now()
+            )
+        );
     }
 }

@@ -182,4 +182,19 @@ public class ProfileService {
             Map.of("role", role.toUpperCase()));
         return loadFullProfile(targetUserId);
     }
+
+    /** Update own profile details. */
+    @Transactional
+    public ProfileView updateProfile(UUID userId, String displayName, String phone, String region, String avatarUrl) {
+        jdbc.update("""
+            UPDATE app_profiles
+            SET display_name = COALESCE(?, display_name),
+                phone = COALESCE(?, phone),
+                region = COALESCE(?, region),
+                avatar_url = COALESCE(?, avatar_url),
+                updated_at = now()
+            WHERE id = ?
+            """, displayName, phone, region, avatarUrl, userId);
+        return loadFullProfile(userId);
+    }
 }

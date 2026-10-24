@@ -5,354 +5,650 @@ import type {
   TruckPlan,
   ShipmentMilestone,
   WalletTransaction,
-  UserProfile,
+  DashboardStats,
+  ChecklistTemplate,
+  EvidenceRecord,
+  ApprovalRequestItem,
+  EmployeeDirectoryItem,
+  AppNotification,
+  WalletAccount,
 } from '../types';
 
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Platform.OS === 'android' ? 'http://10.0.2.2:8080/api/v1' : 'http://localhost:8080/api/v1');
 
-// In-memory / client-cached store for demo & offline continuity
-let clientTasks: Task[] = [
-  {
-    id: 'TSK-FLD-8821',
-    title: 'FMCG Retail Shelf Facing & Planogram Audit',
-    description: 'Verify shelf placement, brand facing count, and promotional standee compliance at primary supermarket.',
-    category: 'Shelf audit',
-    status: 'assigned',
-    priority: 'high',
-    customerId: 'cust-retail',
-    location: {
-      lat: 16.24184,
-      lng: 80.6448,
-      area: 'Tenali Main Market',
-      address: 'Shop #14, Market Road, Tenali, Andhra Pradesh',
-    },
-    dueAt: new Date(Date.now() + 24 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 48 * 3600000).toISOString(),
-    rewardInr: 350,
-    checklistTemplateId: 'chk-shelf',
-    distanceKm: 1.2,
-    checklist: [
-      { id: 'c1', label: 'Verify shelf placement & SKU facing count', done: true, requiresPhoto: true },
-      { id: 'c2', label: 'Inspect promotional standee and discount signage', done: false, requiresPhoto: true },
-      { id: 'c3', label: 'Record product expiry date on top rack', done: false, requiresPhoto: false },
-    ],
-  },
-  {
-    id: 'TSK-FLD-8822',
-    title: 'Telecom Fiber DP Box & Pole Physical Tagging',
-    description: 'Audit roadside distribution point box lock condition, barcode sticker legibility, and drop-cable dressing.',
-    category: 'Equipment inspection',
-    status: 'open',
-    priority: 'normal',
-    customerId: 'cust-telecom',
-    location: {
-      lat: 16.248,
-      lng: 80.638,
-      area: 'Auto Nagar Cluster',
-      address: 'Near 33kV Substation, Auto Nagar, Tenali',
-    },
-    dueAt: new Date(Date.now() + 18 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 12 * 3600000).toISOString(),
-    rewardInr: 450,
-    checklistTemplateId: 'chk-telecom',
-    distanceKm: 2.8,
-    checklist: [
-      { id: 'c4', label: 'Inspect DP box lock & hinge integrity', done: false, requiresPhoto: true },
-      { id: 'c5', label: 'Scan barcode/QR code on pole asset tag', done: false, requiresPhoto: true },
-      { id: 'c6', label: 'Confirm fiber drop-cable dressing & clearance', done: false, requiresPhoto: false },
-    ],
-  },
-  {
-    id: 'TSK-FLD-8823',
-    title: 'Brand Out-of-Home Billboard Lighting Check',
-    description: 'Evening photo proof verifying floodlight illumination, vinyl integrity, and absence of visual obstruction.',
-    category: 'Signage check',
-    status: 'open',
-    priority: 'normal',
-    customerId: 'cust-apex',
-    location: {
-      lat: 16.235,
-      lng: 80.652,
-      area: 'Tenali Bypass Junction',
-      address: 'Guntur-Tenali Highway Flyover Pillar 24',
-    },
-    dueAt: new Date(Date.now() + 6 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 6 * 3600000).toISOString(),
-    rewardInr: 500,
-    checklistTemplateId: 'chk-ooh',
-    distanceKm: 4.5,
-    checklist: [
-      { id: 'c7', label: 'Inspect night-time floodlight illumination', done: false, requiresPhoto: true },
-      { id: 'c8', label: 'Confirm vinyl integrity and zero obstruction', done: false, requiresPhoto: true },
-    ],
-  },
-  {
-    id: 'TSK-FLD-8824',
-    title: 'Fintech Merchant QR Standee & Soundbox Verification',
-    description: 'Check active merchant transaction QR code scan, verify speaker battery, and ensure no competitor sticker overlap.',
-    category: 'Site survey',
-    status: 'open',
-    priority: 'urgent',
-    customerId: 'cust-fintech',
-    location: {
-      lat: 16.2435,
-      lng: 80.642,
-      area: 'Railway Station Road',
-      address: 'Station Road Commercial Complex, Tenali',
-    },
-    dueAt: new Date(Date.now() + 36 * 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 24 * 3600000).toISOString(),
-    rewardInr: 300,
-    checklistTemplateId: 'chk-fintech',
-    distanceKm: 0.8,
-    checklist: [
-      { id: 'c9', label: 'Scan merchant QR to confirm active VPA', done: false, requiresPhoto: true },
-      { id: 'c10', label: 'Verify soundbox power & battery level', done: false, requiresPhoto: false },
-      { id: 'c11', label: 'Confirm zero competitor sticker overlap', done: false, requiresPhoto: true },
-    ],
-  },
-];
-
-let clientWallet: WalletTransaction[] = [
-  {
-    id: 'TXN-901',
-    type: 'CREDIT',
-    amount: 450,
-    description: 'Task Reward: FMCG Retail Shelf Planogram Audit #8819',
-    createdAt: '18 Oct 2026, 17:30',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'TXN-902',
-    type: 'CREDIT',
-    amount: 500,
-    description: 'Task Reward: Highway OOH Billboard Night Inspection #8815',
-    createdAt: '17 Oct 2026, 21:15',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'TXN-903',
-    type: 'CREDIT',
-    amount: 350,
-    description: 'Task Reward: Retail Merchant Standee Verification #8802',
-    createdAt: '16 Oct 2026, 14:40',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'TXN-904',
-    type: 'HOLD',
-    amount: 350,
-    description: 'Pending Approval: Retail Shelf Facing Audit #8821',
-    createdAt: 'Today, 09:15',
-    status: 'PENDING',
-  },
-];
-
-const TRUCK_PLANS: TruckPlan[] = [
-  {
-    id: 'trk-1',
-    name: 'Tata Ace / Bolero Maxi',
-    capacity: '1.2 – 1.7 Tons',
-    dimensions: '7.5ft x 4.8ft x 4.5ft',
-    baseRateInr: 850,
-    perKmRateInr: 28,
-    recommendedFor: 'Intra-city retail distribution, cartons, FMCG store delivery',
-    availableVehicles: 14,
-  },
-  {
-    id: 'trk-2',
-    name: '14ft Eicher Open / Container',
-    capacity: '4.0 Tons',
-    dimensions: '14ft x 6.5ft x 7ft',
-    baseRateInr: 2200,
-    perKmRateInr: 45,
-    recommendedFor: 'Industrial hardware, electronics crates, regional hub transfer',
-    availableVehicles: 8,
-  },
-  {
-    id: 'trk-3',
-    name: '20ft Heavy Commercial Container',
-    capacity: '8.5 Tons',
-    dimensions: '20ft x 7.5ft x 8ft',
-    baseRateInr: 4500,
-    perKmRateInr: 72,
-    recommendedFor: 'Inter-district transport, factory pallets, bulk agricultural cargo',
-    availableVehicles: 5,
-  },
-  {
-    id: 'trk-4',
-    name: '32ft Multi-Axle High Cube',
-    capacity: '15.0 Tons',
-    dimensions: '32ft x 8ft x 8.5ft',
-    baseRateInr: 8900,
-    perKmRateInr: 110,
-    recommendedFor: 'Long-haul national highway logistics, full-truckload bulk freight',
-    availableVehicles: 3,
-  },
-];
-
 export const mobileApi = {
-  async listTasks(scope?: { customerId?: string }): Promise<Task[]> {
+  async listTasks(scope?: { customerId?: string }, token?: string): Promise<Task[]> {
     try {
-      const res = await fetch(`${BASE_URL}/tasks${scope?.customerId ? `?customerId=${scope.customerId}` : ''}`);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/tasks${scope?.customerId ? `?customerId=${scope.customerId}` : ''}`, {
+        headers,
+      });
+
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          return data;
+        if (Array.isArray(data)) {
+          return data.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description || '',
+            category: t.category || 'Shelf audit',
+            status: (t.status?.toLowerCase() || 'open') as any,
+            priority: (t.priority?.toLowerCase() || 'normal') as any,
+            customerId: t.customerId || t.createdBy,
+            location: {
+              lat: Number(t.locationLat) || 0,
+              lng: Number(t.locationLng) || 0,
+              area: t.locationArea || 'Operational Area',
+              address: t.locationAddress || 'Field Location',
+            },
+            dueAt: t.dueAt || new Date().toISOString(),
+            createdAt: t.createdAt || new Date().toISOString(),
+            rewardInr: Number(t.rewardAmount) || 0,
+            checklistTemplateId: t.checklistTemplateId,
+            assigneeId: t.assignedTo,
+          }));
         }
       }
+      return [];
     } catch {
-      // Remote unavailable, return clientTasks
+      return [];
     }
-    if (scope?.customerId) {
-      return clientTasks.filter((t) => !t.customerId || t.customerId === scope.customerId || t.customerId === 'cust-apex');
-    }
-    return clientTasks;
   },
 
-  async createTask(input: NewTaskInput): Promise<Task> {
-    const id = `TSK-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newTask: Task = {
-      id,
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      status: 'open',
-      priority: input.priority,
-      customerId: input.customerId,
+  async createTask(input: NewTaskInput, token?: string): Promise<Task> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/tasks`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        title: input.title,
+        description: input.description,
+        rewardAmount: input.rewardInr,
+        checklistTemplateId: input.checklistTemplateId,
+        areaKey: input.areaKey,
+        address: input.address,
+        category: input.category,
+        priority: input.priority,
+        dueAt: input.dueAt,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to create task: HTTP ${res.status}`);
+    }
+
+    const t = await res.json();
+    return {
+      id: t.id,
+      title: t.title,
+      description: t.description || '',
+      category: t.category || input.category,
+      status: (t.status?.toLowerCase() || 'open') as any,
+      priority: (t.priority?.toLowerCase() || input.priority) as any,
+      customerId: t.customerId || input.customerId,
       location: {
-        lat: input.locationLat || 16.2418,
-        lng: input.locationLng || 80.6448,
-        area: input.areaKey || 'Tenali Urban, Andhra Pradesh',
+        lat: Number(t.locationLat) || input.locationLat || 0,
+        lng: Number(t.locationLng) || input.locationLng || 0,
+        area: input.areaKey || 'Operational Area',
         address: input.address || 'Field Location',
       },
-      dueAt: input.dueAt,
-      createdAt: new Date().toISOString(),
-      rewardInr: input.rewardInr,
+      dueAt: t.dueAt || input.dueAt,
+      createdAt: t.createdAt || new Date().toISOString(),
+      rewardInr: Number(t.rewardAmount) || input.rewardInr,
       checklistTemplateId: input.checklistTemplateId,
-      checklist: (input.checklistItems && input.checklistItems.length > 0
-        ? input.checklistItems
-        : ['Verify storefront presence', 'Capture photo proof of asset', 'Record ambient observations']
-      ).map((item, idx) => ({
-        id: `ci-${idx}`,
-        label: item,
-        done: false,
-        requiresPhoto: idx === 1,
-      })),
-      distanceKm: 1.5,
     };
+  },
 
+  async acceptTask(taskId: string, token?: string): Promise<Task> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/tasks/${taskId}/accept`, {
+      method: 'POST',
+      headers,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to accept task: HTTP ${res.status}`);
+    }
+
+    const t = await res.json();
+    return {
+      id: t.id,
+      title: t.title,
+      description: t.description || '',
+      category: t.category,
+      status: (t.status?.toLowerCase() || 'assigned') as any,
+      priority: t.priority,
+      customerId: t.customerId,
+      location: {
+        lat: Number(t.locationLat) || 0,
+        lng: Number(t.locationLng) || 0,
+        area: t.locationArea || 'Operational Area',
+        address: t.locationAddress || 'Field Location',
+      },
+      dueAt: t.dueAt,
+      createdAt: t.createdAt,
+      rewardInr: Number(t.rewardAmount) || 0,
+      checklistTemplateId: t.checklistTemplateId || 'chk-shelf',
+      assigneeId: t.assignedTo,
+    };
+  },
+
+  async submitEvidence(
+    taskId: string,
+    evidence: { storagePath: string; fileName: string; caption?: string },
+    token?: string
+  ): Promise<{ success: boolean }> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/evidence`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        taskId,
+        storagePath: evidence.storagePath,
+        fileName: evidence.fileName,
+        caption: evidence.caption || '',
+        contentType: 'image/jpeg',
+        fileSizeBytes: 1024,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to submit evidence: HTTP ${res.status}`);
+    }
+
+    return { success: true };
+  },
+
+  async approveTask(taskId: string, token?: string): Promise<void> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status: 'APPROVED' }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to approve task: HTTP ${res.status}`);
+    }
+  },
+
+  async rejectTask(taskId: string, token?: string): Promise<void> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status: 'REJECTED' }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to reject task: HTTP ${res.status}`);
+    }
+  },
+
+  async updateTaskStatus(taskId: string, status: string, token?: string): Promise<void> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status: status.toUpperCase() }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to update task status: HTTP ${res.status}`);
+    }
+  },
+
+  async getWalletTransactions(employeeId: string, token?: string): Promise<WalletTransaction[]> {
     try {
-      const res = await fetch(`${BASE_URL}/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask),
-      });
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/wallets/${employeeId}/transactions`, { headers });
       if (res.ok) {
         const data = await res.json();
-        clientTasks.unshift(data);
-        return data;
+        if (Array.isArray(data)) {
+          return data.map((txn: any) => ({
+            id: txn.id,
+            type: (txn.type || 'CREDIT').toUpperCase() as any,
+            amount: Number(txn.amountInr) || 0,
+            description: txn.reference || 'Task Reward',
+            createdAt: txn.createdAt || new Date().toISOString(),
+            status: (txn.status || 'COMPLETED').toUpperCase() as any,
+          }));
+        }
       }
+      return [];
     } catch {
-      // Remote failed, use fallback
+      return [];
     }
-
-    clientTasks.unshift(newTask);
-    return newTask;
   },
 
-  async acceptTask(taskId: string, employeeId: string): Promise<Task> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx] = {
-        ...clientTasks[idx],
-        status: 'in_progress',
-        assigneeId: employeeId,
+  async getTrackingInfo(trackingId: string, token?: string): Promise<any | null> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
       };
-      return clientTasks[idx];
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${BASE_URL}/tms/tracking/${trackingId}`, { headers });
+      if (res.ok) {
+        return await res.json();
+      }
+      return null;
+    } catch {
+      return null;
     }
-    throw new Error('Task not found');
   },
 
-  async submitEvidence(taskId: string, evidenceNotes: string): Promise<{ success: boolean; aiResult: string }> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx] = {
-        ...clientTasks[idx],
-        status: 'submitted',
+  async getTruckPlans(token?: string): Promise<TruckPlan[]> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
       };
-      clientWallet.unshift({
-        id: `TXN-${Date.now()}`,
-        type: 'HOLD',
-        amount: clientTasks[idx].rewardInr,
-        description: `Pending Review: ${clientTasks[idx].title}`,
-        createdAt: 'Just now',
-        status: 'PENDING',
-      });
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${BASE_URL}/tms/plans`, { headers });
+      if (res.ok) {
+        const plans = await res.json();
+        if (Array.isArray(plans)) {
+          return plans.map((p: any) => ({
+            id: p.id,
+            name: p.planName || p.name || 'Commercial Freight',
+            capacity: `${p.maxCapacityKg || 1000} kg`,
+            dimensions: 'Standard commercial bay',
+            baseRateInr: Number(p.baseRateInr || p.basePrice) || 500,
+            perKmRateInr: Number(p.ratePerKmInr || p.pricePerKm) || 25,
+            availableVehicles: 1,
+            recommendedFor: p.description || p.vehicleType || 'Commercial Freight',
+          }));
+        }
+      }
+      return [];
+    } catch {
+      return [];
     }
-    return {
-      success: true,
-      aiResult: 'PASSED (96.4% Confidence) - GPS matched within 24m, timestamp confirmed, watermark verified.',
+  },
+
+  async createShipment(
+    data: {
+      originAddress: string;
+      destinationAddress: string;
+      cargoDescription?: string;
+      cargoWeightKg?: number;
+      transportPlanId?: string;
+    },
+    token?: string
+  ): Promise<any> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
     };
-  },
-
-  async approveTask(taskId: string): Promise<void> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx].status = 'approved';
-      clientWallet.unshift({
-        id: `TXN-${Date.now()}`,
-        type: 'CREDIT',
-        amount: clientTasks[idx].rewardInr,
-        description: `Approved Task Reward: ${clientTasks[idx].title}`,
-        createdAt: 'Just now',
-        status: 'COMPLETED',
-      });
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
-  },
 
-  async rejectTask(taskId: string): Promise<void> {
-    const idx = clientTasks.findIndex((t) => t.id === taskId);
-    if (idx !== -1) {
-      clientTasks[idx].status = 'rejected';
+    const res = await fetch(`${BASE_URL}/tms/shipments`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to create shipment: HTTP ${res.status}`);
     }
+
+    return await res.json();
   },
 
-  getTruckPlans(): TruckPlan[] {
-    return TRUCK_PLANS;
-  },
+  async getDashboardStats(
+    scopeOrToken?: { customerId?: string; token?: string } | string,
+    maybeToken?: string
+  ): Promise<DashboardStats> {
+    let customerId: string | undefined;
+    let token: string | undefined;
 
-  getWalletTransactions(): WalletTransaction[] {
-    return clientWallet;
-  },
+    if (typeof scopeOrToken === 'object' && scopeOrToken !== null) {
+      customerId = scopeOrToken.customerId;
+      token = scopeOrToken.token;
+    } else if (typeof scopeOrToken === 'string' && maybeToken !== undefined) {
+      customerId = scopeOrToken;
+      token = maybeToken;
+    } else if (typeof scopeOrToken === 'string' && maybeToken === undefined) {
+      if (scopeOrToken.startsWith('ey') || scopeOrToken.length > 50) {
+        token = scopeOrToken;
+      } else {
+        customerId = scopeOrToken;
+      }
+    }
 
-  getTrackingInfo(trackingId: string): {
-    id: string;
-    origin: string;
-    destination: string;
-    driverName: string;
-    driverPhone: string;
-    vehicleNo: string;
-    eta: string;
-    milestones: ShipmentMilestone[];
-  } {
-    return {
-      id: trackingId || 'CH20240512001',
-      origin: 'Vijayawada Central Logistics Hub',
-      destination: 'Apex Retail Partner Store #12, Tenali',
-      driverName: 'Koteswara Rao (Staff Driver #D-402)',
-      driverPhone: '+91 98480 23456',
-      vehicleNo: 'AP-16-TX-9988 (14ft Container)',
-      eta: 'Today, 03:30 PM (On Schedule)',
-      milestones: [
-        { title: 'Consignment Manifested', location: 'Vijayawada Hub', time: '19 Oct 2026, 06:30 AM', completed: true },
-        { title: 'Dispatched & In-Transit', location: 'NH-16 Corridor', time: '19 Oct 2026, 09:15 AM', completed: true },
-        { title: 'Arrived at Local Cluster', location: 'Tenali Transit Center', time: '19 Oct 2026, 11:45 AM', completed: true },
-        { title: 'Out for Field Handover', location: 'Station Road Route #4', time: '19 Oct 2026, 01:20 PM', completed: false, current: true },
-        { title: 'Delivered & Evidence Tagged', location: 'Apex Storefront #12', time: 'Expected by 03:30 PM', completed: false },
-      ],
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
     };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const url = `${BASE_URL}/dashboard/stats${customerId ? `?customerId=${customerId}` : ''}`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch dashboard stats: HTTP ${res.status}`);
+    }
+    return await res.json();
+  },
+
+  async getWalletAccount(employeeId: string, token?: string): Promise<WalletAccount | null> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/wallets/${employeeId}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          employeeId: data.employeeId,
+          balanceInr: Number(data.balanceInr) || 0,
+          pendingInr: Number(data.pendingInr) || 0,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  async listChecklistTemplates(token?: string): Promise<ChecklistTemplate[]> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/checklist-templates`, { headers });
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async getChecklistTemplate(templateId: string, token?: string): Promise<ChecklistTemplate | null> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/checklist-templates/${templateId}`, { headers });
+      if (res.ok) {
+        return await res.json();
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  async listEvidence(taskId?: string, token?: string): Promise<EvidenceRecord[]> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const url = `${BASE_URL}/evidence${taskId ? `?taskId=${taskId}` : ''}`;
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async decideEvidence(
+    evidenceId: string,
+    status: 'VERIFIED' | 'FLAGGED' | 'REJECTED',
+    note: string,
+    token?: string
+  ): Promise<boolean> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/evidence/${evidenceId}/manager-decision`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ status, note }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Decision failed: HTTP ${res.status}`);
+    }
+    return true;
+  },
+
+  async listApprovals(token?: string): Promise<ApprovalRequestItem[]> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/approvals`, { headers });
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async decideApproval(
+    approvalId: string,
+    stage: 'APPROVED' | 'REJECTED' | 'REWORK',
+    note: string,
+    token?: string
+  ): Promise<boolean> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/approvals/${approvalId}/decision`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ stage, note }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Approval decision failed: HTTP ${res.status}`);
+    }
+    return true;
+  },
+
+  async listEmployees(token?: string): Promise<EmployeeDirectoryItem[]> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/employees`, { headers });
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async setEmployeeApproval(
+    employeeId: string,
+    status: 'ACTIVE' | 'SUSPENDED' | 'REJECTED' | 'PENDING',
+    role?: string,
+    token?: string
+  ): Promise<boolean> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/employees/${employeeId}/approval`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status, role }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to update employee status: HTTP ${res.status}`);
+    }
+    return true;
+  },
+
+  async updateProfile(
+    data: { displayName?: string; phone?: string; region?: string; avatarUrl?: string },
+    token?: string
+  ): Promise<any> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/profiles/me`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to update profile: HTTP ${res.status}`);
+    }
+    return await res.json();
+  },
+
+  async listNotifications(token?: string): Promise<AppNotification[]> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/notifications`, { headers });
+      if (res.ok) {
+        return await res.json();
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async markNotificationRead(id: string, token?: string): Promise<boolean> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${BASE_URL}/notifications/${id}/read`, {
+        method: 'PATCH',
+        headers,
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   },
 };
