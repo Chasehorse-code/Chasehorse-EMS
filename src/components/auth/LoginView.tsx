@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, CheckCircle2, AlertCircle, ArrowRight, Briefcase, Building2, Loader2, ArrowLeft, Zap } from 'lucide-react';
-import { useAuth, DEMO_PROFILES, type DemoRole } from '@/context/AuthContext';
+import { Mail, CheckCircle2, AlertCircle, ArrowRight, Briefcase, Building2, Loader2, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { useRole } from '@/context/RoleContext';
 import { FormField } from '@/components/ui/FormField';
 import { PasswordField } from '@/components/ui/PasswordField';
@@ -23,7 +23,7 @@ function maskEmail(email: string): string {
 }
 
 export function LoginView({ onSwitchView, onClose, initialEmail = '', initialMessage = null }: LoginViewProps) {
-  const { signIn, verifyEmailOtp, signInWithOtp, resetPassword, profile, refreshProfile, error: authError, signInAsDemo } = useAuth();
+  const { signIn, verifyEmailOtp, signInWithOtp, resetPassword, profile, refreshProfile, error: authError } = useAuth();
   const { setRole } = useRole();
   const navigate = useNavigate();
 
@@ -102,24 +102,6 @@ export function LoginView({ onSwitchView, onClose, initialEmail = '', initialMes
         navigate('/employee/dashboard', { replace: true });
       }
     }, 1200);
-  };
-
-  const handleDemoLogin = async (demoKey: DemoRole) => {
-    setLoading(true);
-    setGeneralError(null);
-    try {
-      await signInAsDemo(demoKey);
-      const demo = DEMO_PROFILES[demoKey];
-      setStep('success');
-      window.setTimeout(() => {
-        onClose();
-        navigate(demo.targetPath, { replace: true });
-      }, 700);
-    } catch {
-      setGeneralError('Failed to initialize demo login.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handlePasswordSubmit = async (e: FormEvent) => {
@@ -268,143 +250,6 @@ export function LoginView({ onSwitchView, onClose, initialEmail = '', initialMes
         <div className="auth-banner auth-banner--info" role="status">
           <CheckCircle2 size={18} className="auth-banner__icon" />
           <span>{infoMessage}</span>
-        </div>
-      )}
-
-      {/* ⚡ Instant Demo Access (Evaluation Mode) */}
-      {step === 'password' && (
-        <div
-          style={{
-            margin: '0.25rem 0 1.25rem 0',
-            padding: '1rem',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Zap size={15} color="#38bdf8" /> 1-Click Instant Demo Login
-            </span>
-            <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', fontWeight: 600 }}>
-              No Credentials Needed
-            </span>
-          </div>
-          <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.775rem', color: '#94a3b8', lineHeight: 1.4 }}>
-            Select any persona to immediately explore their feature screens and test workflows:
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('operations')}
-              disabled={loading}
-              style={{
-                padding: '10px 8px',
-                borderRadius: '10px',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-                background: 'rgba(15, 23, 42, 0.8)',
-                color: '#f8fafc',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '5px',
-                textAlign: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#38bdf8';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(56, 189, 248, 0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🛡️</span>
-              <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#f8fafc' }}>Operations</span>
-              <span style={{ fontSize: '0.675rem', color: '#38bdf8', fontWeight: 600 }}>Chaitanya</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('customer')}
-              disabled={loading}
-              style={{
-                padding: '10px 8px',
-                borderRadius: '10px',
-                border: '1px solid rgba(16, 185, 129, 0.35)',
-                background: 'rgba(15, 23, 42, 0.8)',
-                color: '#f8fafc',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '5px',
-                textAlign: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#10b981';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.35)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🏢</span>
-              <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#f8fafc' }}>Customer</span>
-              <span style={{ fontSize: '0.675rem', color: '#34d399', fontWeight: 600 }}>Liyana</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('employee')}
-              disabled={loading}
-              style={{
-                padding: '10px 8px',
-                borderRadius: '10px',
-                border: '1px solid rgba(245, 158, 11, 0.35)',
-                background: 'rgba(15, 23, 42, 0.8)',
-                color: '#f8fafc',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '5px',
-                textAlign: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#f59e0b';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.35)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>⚡</span>
-              <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#f8fafc' }}>Field Worker</span>
-              <span style={{ fontSize: '0.675rem', color: '#fbbf24', fontWeight: 600 }}>Manu</span>
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', margin: '0.85rem 0 0.25rem 0', gap: '10px' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
-            <span style={{ fontSize: '0.675rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              or sign in with password & 2FA OTP
-            </span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
-          </div>
         </div>
       )}
 

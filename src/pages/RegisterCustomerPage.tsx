@@ -72,7 +72,7 @@ export function RegisterCustomerPage() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '2rem 1rem',
-      background: 'radial-gradient(ellipse at 50% 0%, var(--color-surface-sunken, #0f172a) 0%, var(--color-bg, #090d16) 100%)',
+      background: 'var(--bg)',
     }}>
       <div style={{ width: '100%', maxWidth: '480px' }}>
         {/* Header */}
@@ -83,28 +83,28 @@ export function RegisterCustomerPage() {
             justifyContent: 'center',
             width: '54px',
             height: '54px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-            boxShadow: '0 8px 20px -4px rgba(5, 150, 105, 0.4)',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--color-verify, #0b7d54)',
+            boxShadow: 'var(--shadow-button)',
             marginBottom: '0.75rem',
           }}>
             <Building2 size={28} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.35rem 0', letterSpacing: '-0.02em', color: 'var(--color-text, #f8fafc)' }}>
+          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.35rem 0', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
             Register as Customer
           </h1>
-          <p style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.9rem', margin: 0 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
             Post field-work tasks, track nationwide execution, and inspect AI-verified proof
           </p>
         </div>
 
         {/* Card */}
         <div style={{
-          background: 'var(--color-surface, #1e293b)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-border, #334155)',
+          background: 'var(--surface)',
+          borderRadius: 'var(--radius-card)',
+          border: '1px solid var(--border)',
           padding: '2rem',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+          boxShadow: 'var(--shadow-panel)',
         }}>
           {error && (
             <div style={{
@@ -257,13 +257,13 @@ export function RegisterCustomerPage() {
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border, #334155)', fontSize: '0.875rem' }}>
-            <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>Already have an account? </span>
-            <Link to="/login" style={{ color: '#059669', fontWeight: 600, textDecoration: 'none' }}>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)', fontSize: '0.875rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Already have an account? </span>
+            <Link to="/login" style={{ color: 'var(--color-verify, #0b7d54)', fontWeight: 600, textDecoration: 'none' }}>
               Sign In
             </Link>
             <div style={{ marginTop: '0.5rem' }}>
-              <Link to="/register/employee" style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.8rem', textDecoration: 'none' }}>
+              <Link to="/register/employee" style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textDecoration: 'none' }}>
                 Want to work on field tasks? Register as On-Field Worker →
               </Link>
             </div>

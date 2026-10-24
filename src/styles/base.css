@@ -18,8 +18,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, p, ul, ol, dl, dd, figure, blockquote {
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote {
   margin: 0;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--color-signal-100, #fddccb);
+  color: var(--color-ink, #111315);
 }
 
 ul, ol {
@@ -28,12 +39,12 @@ ul, ol {
 }
 
 a {
-  color: var(--brand-600);
+  color: var(--color-route, #2d52d2);
   text-underline-offset: 2px;
 }
 
 a:hover {
-  color: var(--brand-700);
+  color: #1b3db8;
 }
 
 button, input, select, textarea {
@@ -53,9 +64,9 @@ textarea:disabled {
 }
 
 :focus-visible {
-  outline: 2px solid var(--brand-500);
+  outline: 2px solid var(--color-route, #2d52d2);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs, 2px);
 }
 
 main:focus {

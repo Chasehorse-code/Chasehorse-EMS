@@ -23,7 +23,7 @@ export function ChaseHorseLogo({ size = 36, className, ...props }: { size?: numb
       />
       <path
         d="M28 24C30 23 34 22 36 24C38 26 40 29 42 32C41 33 39 33 37 31C35 29 33 27 30 26L28 24Z"
-        fill="#38BDF8"
+        fill="#F2551D"
       />
     </svg>
   );

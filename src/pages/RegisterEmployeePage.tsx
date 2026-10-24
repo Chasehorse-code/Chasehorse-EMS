@@ -96,7 +96,7 @@ export function RegisterEmployeePage() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '2rem 1rem',
-      background: 'radial-gradient(ellipse at 50% 0%, var(--color-surface-sunken, #0f172a) 0%, var(--color-bg, #090d16) 100%)',
+      background: 'var(--bg)',
     }}>
       <div style={{ width: '100%', maxWidth: '520px' }}>
         {/* Header */}
@@ -107,28 +107,28 @@ export function RegisterEmployeePage() {
             justifyContent: 'center',
             width: '54px',
             height: '54px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            boxShadow: '0 8px 20px -4px rgba(37, 99, 235, 0.4)',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--color-signal, #f2551d)',
+            boxShadow: 'var(--shadow-button)',
             marginBottom: '0.75rem',
           }}>
             <Briefcase size={28} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.35rem 0', letterSpacing: '-0.02em', color: 'var(--color-text, #f8fafc)' }}>
+          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.35rem 0', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
             Join as On-Field Worker
           </h1>
-          <p style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.9rem', margin: 0 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
             Execute local field tasks, record geo-tagged proof, and earn verified rewards
           </p>
         </div>
 
         {/* Card */}
         <div style={{
-          background: 'var(--color-surface, #1e293b)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-border, #334155)',
+          background: 'var(--surface)',
+          borderRadius: 'var(--radius-card)',
+          border: '1px solid var(--border)',
           padding: '2rem',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+          boxShadow: 'var(--shadow-panel)',
         }}>
           {error && (
             <div style={{
@@ -404,13 +404,13 @@ export function RegisterEmployeePage() {
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border, #334155)', fontSize: '0.875rem' }}>
-            <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>Already have an account? </span>
-            <Link to="/login" style={{ color: '#3b82f6', fontWeight: 600, textDecoration: 'none' }}>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)', fontSize: '0.875rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Already have an account? </span>
+            <Link to="/login" style={{ color: 'var(--color-signal, #f2551d)', fontWeight: 600, textDecoration: 'none' }}>
               Sign In
             </Link>
             <div style={{ marginTop: '0.5rem' }}>
-              <Link to="/register/customer" style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.8rem', textDecoration: 'none' }}>
+              <Link to="/register/customer" style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textDecoration: 'none' }}>
                 Need to create tasks? Register as Business Customer →
               </Link>
             </div>

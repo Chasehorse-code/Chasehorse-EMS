@@ -1,12 +1,12 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Shield, Lock, Mail, KeyRound, AlertCircle, CheckCircle2, ArrowRight, Briefcase, Building2, Zap } from 'lucide-react';
-import { useAuth, DEMO_PROFILES, type DemoRole } from '@/context/AuthContext';
+import { Shield, Lock, Mail, KeyRound, AlertCircle, CheckCircle2, ArrowRight, Briefcase, Building2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { useRole } from '@/context/RoleContext';
 import type { Role } from '@/types';
 
 export function LoginPage() {
-  const { signIn, verifyEmailOtp, signInWithOtp, resetPassword, profile, refreshProfile, error: authError, signInAsDemo } = useAuth();
+  const { signIn, verifyEmailOtp, signInWithOtp, resetPassword, profile, refreshProfile, error: authError } = useAuth();
   const { setRole } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,20 +56,6 @@ export function LoginPage() {
     } else {
       // On-field worker -> nearby tasks
       navigate('/nearby', { replace: true });
-    }
-  };
-
-  const handleDemoLogin = async (demoKey: DemoRole) => {
-    setLoading(true);
-    setLocalError(null);
-    try {
-      await signInAsDemo(demoKey);
-      const demo = DEMO_PROFILES[demoKey];
-      navigate(demo.targetPath, { replace: true });
-    } catch {
-      setLocalError('Failed to initialize demo login.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -158,7 +144,7 @@ export function LoginPage() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '2rem 1rem',
-      background: 'radial-gradient(ellipse at 50% 0%, var(--color-surface-sunken, #0f172a) 0%, var(--color-bg, #090d16) 100%)',
+      background: 'var(--bg)',
     }}>
       <div style={{ width: '100%', maxWidth: '440px' }}>
         {/* Brand Header */}
@@ -169,32 +155,32 @@ export function LoginPage() {
             justifyContent: 'center',
             width: '56px',
             height: '56px',
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--color-signal, #f2551d)',
+            boxShadow: 'var(--shadow-button)',
             marginBottom: '1rem',
           }}>
             <Shield size={32} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0', letterSpacing: '-0.02em', color: 'var(--color-text, #f8fafc)' }}>
+          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
             ChaseHorse
           </h1>
-          <p style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.9rem', margin: 0 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
             Field Task & Employee Operations Platform
           </p>
         </div>
 
         {/* Card */}
         <div style={{
-          background: 'var(--color-surface, #1e293b)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-border, #334155)',
+          background: 'var(--surface)',
+          borderRadius: 'var(--radius-card)',
+          border: '1px solid var(--border)',
           padding: '2rem',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
+          boxShadow: 'var(--shadow-panel)',
         }}>
           {/* Header indicator */}
           <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: '0 0 0.25rem 0', color: '#f8fafc' }}>
+            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 600, margin: '0 0 0.25rem 0', color: 'var(--ink)' }}>
               {step === 'password' && 'Secure Login'}
               {step === 'otp' && 'Email OTP Validation'}
               {step === 'forgot' && 'Reset Password'}
@@ -240,107 +226,6 @@ export function LoginPage() {
             }}>
               <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>{infoMessage}</div>
-            </div>
-          )}
-
-          {/* ⚡ 1-Click Instant Demo Access (Evaluation Mode) */}
-          {step === 'password' && (
-            <div
-              style={{
-                marginBottom: '1.25rem',
-                padding: '1rem',
-                borderRadius: '12px',
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Zap size={14} color="#38bdf8" /> 1-Click Instant Demo Login
-                </span>
-                <span style={{ fontSize: '0.675rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', fontWeight: 600 }}>
-                  No Credentials
-                </span>
-              </div>
-              <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.775rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                Instant access to any role for review & grading:
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('operations')}
-                  disabled={loading}
-                  style={{
-                    padding: '8px 6px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(56, 189, 248, 0.35)',
-                    background: '#0f172a',
-                    color: '#f8fafc',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: '1.15rem' }}>🛡️</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc' }}>Operations</span>
-                  <span style={{ fontSize: '0.65rem', color: '#38bdf8' }}>Chaitanya</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('customer')}
-                  disabled={loading}
-                  style={{
-                    padding: '8px 6px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    background: '#0f172a',
-                    color: '#f8fafc',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: '1.15rem' }}>🏢</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc' }}>Customer</span>
-                  <span style={{ fontSize: '0.65rem', color: '#34d399' }}>Liyana</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('employee')}
-                  disabled={loading}
-                  style={{
-                    padding: '8px 6px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(245, 158, 11, 0.35)',
-                    background: '#0f172a',
-                    color: '#f8fafc',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: '1.15rem' }}>⚡</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc' }}>Worker</span>
-                  <span style={{ fontSize: '0.65rem', color: '#fbbf24' }}>Manu</span>
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', margin: '0.75rem 0 0.25rem 0', gap: '8px' }}>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
-                <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>or use credentials</span>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
-              </div>
             </div>
           )}
 
@@ -539,8 +424,8 @@ export function LoginPage() {
           )}
 
           {/* Two distinct register links */}
-          <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border, #334155)' }}>
-            <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8125rem', color: 'var(--color-text-muted, #94a3b8)', textAlign: 'center' }}>
+          <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+            <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center' }}>
               Don't have a ChaseHorse account?
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -552,17 +437,17 @@ export function LoginPage() {
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.75rem 0.5rem',
-                  borderRadius: '10px',
-                  background: 'var(--color-surface-sunken, #0f172a)',
-                  border: '1px solid var(--color-border, #334155)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
                   textDecoration: 'none',
                   color: 'inherit',
                   transition: 'border-color 0.2s',
                 }}
               >
-                <Briefcase size={20} color="#3b82f6" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#f8fafc' }}>On-Field Worker</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #94a3b8)' }}>Task Execution</span>
+                <Briefcase size={20} color="var(--color-signal, #f2551d)" />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>On-Field Worker</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Task Execution</span>
               </Link>
 
               <Link
@@ -573,17 +458,17 @@ export function LoginPage() {
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.75rem 0.5rem',
-                  borderRadius: '10px',
-                  background: 'var(--color-surface-sunken, #0f172a)',
-                  border: '1px solid var(--color-border, #334155)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
                   textDecoration: 'none',
                   color: 'inherit',
                   transition: 'border-color 0.2s',
                 }}
               >
-                <Building2 size={20} color="#10b981" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#f8fafc' }}>Business Customer</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #94a3b8)' }}>Create Field Tasks</span>
+                <Building2 size={20} color="var(--color-verify, #0b7d54)" />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>Business Customer</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Create Field Tasks</span>
               </Link>
             </div>
           </div>

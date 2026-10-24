@@ -23,7 +23,7 @@ import { AccessDenied } from '@/pages/AccessDenied';
 
 export function AppShell() {
   const { role, actorName } = useRole();
-  const { user, profile, loading, signOut, signInAsDemo } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -151,14 +151,14 @@ export function AppShell() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
                     textDecoration: 'none',
-                    color: isActive ? '#ffffff' : '#94a3b8',
-                    backgroundColor: isActive ? '#1d6df7' : 'transparent',
-                    boxShadow: isActive ? '0 4px 12px rgba(29, 109, 247, 0.35)' : 'none',
+                    color: isActive ? '#f1efe9' : '#aeb3b7',
+                    backgroundColor: isActive ? 'rgba(241, 239, 233, 0.08)' : 'transparent',
+                    boxShadow: isActive ? 'inset 3px 0 0 #f2551d' : 'none',
                     transition: 'all 0.15s ease',
                   })}
                 >
@@ -214,7 +214,7 @@ export function AppShell() {
                   fontSize: '0.775rem',
                   padding: '6px 12px',
                   borderRadius: '6px',
-                  backgroundColor: '#1d6df7',
+                  backgroundColor: 'var(--color-signal, #f2551d)',
                   textAlign: 'center',
                   textDecoration: 'none',
                   display: 'block',
@@ -228,22 +228,22 @@ export function AppShell() {
         )}
 
         {/* Sidebar Footer Identity */}
-        <div className="sidebar__foot" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', padding: '12px 18px' }}>
+        <div className="sidebar__foot" style={{ borderTop: '1px solid var(--color-night-line, #30373c)', padding: '12px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-            <p className="sidebar__foot-label" style={{ margin: 0, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>
+            <p className="sidebar__foot-label" style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-night-3, #7d8489)', textTransform: 'uppercase' }}>
               {user ? 'Verified Account' : 'Guest Session'}
             </p>
-            <Link to="/" className="icon-btn" title="Back to Public Site" aria-label="Public website" style={{ color: '#94a3b8' }}>
+            <Link to="/" className="icon-btn" title="Back to Public Site" aria-label="Public website" style={{ color: 'var(--color-on-night-2, #aeb3b7)' }}>
               <Home size={14} />
             </Link>
           </div>
           <div className="sidebar__who" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Avatar name={displayName} size={32} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p className="sidebar__who-name" style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <p className="sidebar__who-name" style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-on-night, #f1efe9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {displayName}
               </p>
-              <p className="sidebar__who-sub" style={{ margin: 0, fontSize: '0.75rem', color: '#38bdf8' }}>
+              <p className="sidebar__who-sub" style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-signal, #f2551d)', fontFamily: 'var(--font-mono)' }}>
                 {roleMeta[role]?.label || role}
               </p>
             </div>
@@ -279,8 +279,8 @@ export function AppShell() {
             justifyContent: 'space-between',
             gap: '16px',
             padding: '12px clamp(16px, 3vw, 32px)',
-            background: 'var(--surface, #0f1b30)',
-            borderBottom: '1px solid var(--border, #1e3354)',
+            background: 'var(--surface)',
+            borderBottom: '1px solid var(--border)',
             backdropFilter: 'blur(12px)',
           }}
         >
@@ -292,14 +292,14 @@ export function AppShell() {
             aria-label="Open navigation"
             aria-expanded={navOpen}
             aria-controls="primary-nav"
-            style={{ color: 'var(--color-text, #f8fafc)' }}
+            style={{ color: 'var(--text)' }}
           >
             <Menu size={20} aria-hidden />
           </button>
 
           {/* Search bar */}
           <form onSubmit={handleSearchSubmit} style={{ flex: '1', maxWidth: '420px', position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={searchQuery}
@@ -311,108 +311,18 @@ export function AppShell() {
                 paddingLeft: '36px',
                 paddingRight: '12px',
                 fontSize: '0.825rem',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-input)',
                 height: '38px',
                 boxSizing: 'border-box',
-                background: 'rgba(15, 23, 42, 0.4)',
-                border: '1px solid var(--color-border, #334155)',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                color: 'var(--ink)',
               }}
             />
           </form>
 
           {/* Right Header Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Quick Demo Persona Switcher for Evaluation & Testing */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                background: 'rgba(15, 23, 42, 0.7)',
-                borderRadius: '8px',
-                padding: '3px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                gap: '2px',
-              }}
-            >
-              <button
-                type="button"
-                title="Switch to Operations Portal (Chaitanya)"
-                onClick={() => {
-                  signInAsDemo('operations');
-                  navigate('/overview');
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: (role === 'operations_manager' || role === 'admin' || role === 'manager' || role === 'operations') ? '#1d6df7' : 'transparent',
-                  color: (role === 'operations_manager' || role === 'admin' || role === 'manager' || role === 'operations') ? '#ffffff' : '#94a3b8',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>🛡️</span>
-                <span>Ops (Chaitanya)</span>
-              </button>
-
-              <button
-                type="button"
-                title="Switch to Customer Portal (Liyana)"
-                onClick={() => {
-                  signInAsDemo('customer');
-                  navigate('/customer/dashboard');
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: role === 'customer' ? '#10b981' : 'transparent',
-                  color: role === 'customer' ? '#ffffff' : '#94a3b8',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>🏢</span>
-                <span>Customer (Liyana)</span>
-              </button>
-
-              <button
-                type="button"
-                title="Switch to Worker Portal (Manu)"
-                onClick={() => {
-                  signInAsDemo('employee');
-                  navigate('/employee/dashboard');
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: (role === 'employee' || role === 'field_worker') ? '#f59e0b' : 'transparent',
-                  color: (role === 'employee' || role === 'field_worker') ? '#ffffff' : '#94a3b8',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>⚡</span>
-                <span>Worker (Manu)</span>
-              </button>
-            </div>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             {/* Theme Toggle */}
             <ThemeToggle />
 
@@ -427,13 +337,13 @@ export function AppShell() {
                   position: 'relative',
                   width: '38px',
                   height: '38px',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-sm)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--color-text-muted, #94a3b8)',
-                  background: notifMenuOpen ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                  border: '1px solid var(--color-border, #334155)',
+                  color: 'var(--text-muted)',
+                  background: notifMenuOpen ? 'var(--surface-2)' : 'transparent',
+                  border: '1px solid var(--border)',
                   cursor: 'pointer',
                 }}
               >

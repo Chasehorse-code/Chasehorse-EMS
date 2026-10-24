@@ -50,7 +50,7 @@ export function PendingApprovalPage() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '2rem 1rem',
-      background: 'radial-gradient(ellipse at 50% 0%, var(--color-surface-sunken, #0f172a) 0%, var(--color-bg, #090d16) 100%)',
+      background: 'var(--bg)',
     }}>
       <div style={{ width: '100%', maxWidth: '520px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -60,27 +60,27 @@ export function PendingApprovalPage() {
             justifyContent: 'center',
             width: '64px',
             height: '64px',
-            borderRadius: '20px',
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            boxShadow: '0 10px 25px -5px rgba(245, 158, 11, 0.4)',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--color-review, #94600a)',
+            boxShadow: 'var(--shadow-button)',
             marginBottom: '1rem',
           }}>
             <Clock size={34} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--color-text, #f8fafc)' }}>
+          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--ink)' }}>
             Account Pending Approval
           </h1>
-          <p style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.925rem', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', margin: 0, lineHeight: 1.5 }}>
             Your on-field worker registration is under review by Operations Management.
           </p>
         </div>
 
         <div style={{
-          background: 'var(--color-surface, #1e293b)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-border, #334155)',
+          background: 'var(--surface)',
+          borderRadius: 'var(--radius-card)',
+          border: '1px solid var(--border)',
           padding: '2rem',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+          boxShadow: 'var(--shadow-panel)',
         }}>
           {statusMessage && (
             <div style={{
@@ -88,10 +88,10 @@ export function PendingApprovalPage() {
               alignItems: 'center',
               gap: '0.75rem',
               padding: '0.875rem',
-              borderRadius: '8px',
-              background: statusMessage.includes('approved') ? 'rgba(34, 197, 94, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-              border: statusMessage.includes('approved') ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
-              color: statusMessage.includes('approved') ? '#4ade80' : '#93c5fd',
+              borderRadius: 'var(--radius-sm)',
+              background: statusMessage.includes('approved') ? 'var(--good-soft)' : 'var(--warn-soft)',
+              border: statusMessage.includes('approved') ? '1px solid var(--good)' : '1px solid var(--warn)',
+              color: statusMessage.includes('approved') ? 'var(--good)' : 'var(--warn)',
               fontSize: '0.875rem',
               marginBottom: '1.25rem',
             }}>
@@ -101,17 +101,17 @@ export function PendingApprovalPage() {
           )}
 
           <div style={{
-            background: 'var(--color-surface-sunken, #0f172a)',
-            borderRadius: '10px',
-            border: '1px solid var(--color-border, #334155)',
+            background: 'var(--surface-2)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border)',
             padding: '1rem',
             marginBottom: '1.5rem',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#f59e0b', fontSize: '0.875rem', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: 'var(--color-review, #94600a)', fontSize: '0.875rem', fontWeight: 600 }}>
               <ShieldAlert size={16} />
               <span>Review Checklist for On-Field Worker Access</span>
             </div>
-            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-text-muted, #94a3b8)', lineHeight: 1.6 }}>
+            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
               <li>Verification of worker identity and contact credentials</li>
               <li>Operational region and nearby task routing assignment</li>
               <li>Operations Manager role confirmation (On-field worker)</li>
@@ -125,23 +125,23 @@ export function PendingApprovalPage() {
             fontSize: '0.875rem',
             marginBottom: '1.5rem',
             padding: '0.75rem 0',
-            borderTop: '1px solid var(--color-border, #334155)',
-            borderBottom: '1px solid var(--color-border, #334155)',
+            borderTop: '1px solid var(--border)',
+            borderBottom: '1px solid var(--border)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>Applicant:</span>
-              <strong style={{ color: '#f8fafc' }}>{displayName}</strong>
+              <span style={{ color: 'var(--text-muted)' }}>Applicant:</span>
+              <strong style={{ color: 'var(--ink)' }}>{displayName}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>Email:</span>
-              <span style={{ color: '#cbd5e1' }}>{email}</span>
+              <span style={{ color: 'var(--text-muted)' }}>Email:</span>
+              <span style={{ color: 'var(--text-muted)' }}>{email}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>Region:</span>
-              <span style={{ color: '#cbd5e1' }}>{region}</span>
+              <span style={{ color: 'var(--text-muted)' }}>Region:</span>
+              <span style={{ color: 'var(--text-muted)' }}>{region}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>Status:</span>
+              <span style={{ color: 'var(--text-muted)' }}>Status:</span>
               <span style={{
                 background: 'rgba(245, 158, 11, 0.2)',
                 color: '#fbbf24',
