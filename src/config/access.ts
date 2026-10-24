@@ -15,6 +15,7 @@ import {
   BarChart3,
   Settings,
   HelpCircle,
+  User,
 } from 'lucide-react';
 import type { Role } from '@/types';
 
@@ -134,6 +135,12 @@ export const navItems: NavItem[] = [
     roles: ['admin', 'operations_manager', 'manager', 'operations'],
   },
   {
+    to: '/employee/dashboard',
+    label: 'Worker Home',
+    icon: Home,
+    roles: ['employee', 'field_worker'],
+  },
+  {
     to: '/nearby',
     label: 'Nearby Tasks (GPS)',
     icon: MapPin,
@@ -174,6 +181,12 @@ export const navItems: NavItem[] = [
     label: 'Rewards Wallet',
     icon: Wallet,
     roles: ['admin', 'operations_manager', 'manager', 'operations', 'employee', 'field_worker'],
+  },
+  {
+    to: '/employee/profile',
+    label: 'Worker Profile & ID',
+    icon: User,
+    roles: ['employee', 'field_worker'],
   },
 ];
 
@@ -241,7 +254,7 @@ export const customerNavItems: NavItem[] = [
 export function canAccessPath(role: Role, pathname: string): boolean {
   if (pathname === '/tasks/new') return true;
   if (pathname === '/pending-approval') return true;
-  if (pathname === '/admin/dashboard' || pathname === '/employee/dashboard') return true;
+  if (pathname === '/admin/dashboard' || pathname === '/employee/dashboard' || pathname === '/employee/profile') return true;
   if (pathname.startsWith('/customer/')) return true;
 
   // Strict role boundaries: customers cannot access employee or manager features
