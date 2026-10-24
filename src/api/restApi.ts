@@ -226,6 +226,33 @@ export const restApi: ChaseHorseApi = {
     };
   },
 
+  async rejectTask(taskId: string, _reason?: string): Promise<Task> {
+    const res = await http<any>(`/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'REJECTED' }),
+    });
+    return {
+      id: res.id,
+      title: res.title,
+      description: res.description,
+      category: res.category || 'Shelf audit',
+      status: 'rejected',
+      priority: res.priority || 'normal',
+      customerId: res.customerId || res.createdBy,
+      location: {
+        lat: Number(res.locationLat) || 0,
+        lng: Number(res.locationLng) || 0,
+        area: res.locationArea || 'Operational Zone',
+        address: res.locationAddress || 'Field Site',
+      },
+      dueAt: res.dueAt || new Date().toISOString(),
+      createdAt: res.createdAt || new Date().toISOString(),
+      rewardInr: Number(res.rewardAmount) || 0,
+      assigneeId: res.assignedTo,
+      checklistTemplateId: res.checklistTemplateId || 'chk-shelf',
+    };
+  },
+
   async listEmployees(): Promise<Employee[]> {
     let list: Employee[] = [];
     try {
