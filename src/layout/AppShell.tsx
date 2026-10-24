@@ -23,7 +23,7 @@ import { AccessDenied } from '@/pages/AccessDenied';
 
 export function AppShell() {
   const { role, actorName } = useRole();
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut, signInAsDemo } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -321,7 +321,98 @@ export function AppShell() {
           </form>
 
           {/* Right Header Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Quick Demo Persona Switcher for Evaluation & Testing */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(15, 23, 42, 0.7)',
+                borderRadius: '8px',
+                padding: '3px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                gap: '2px',
+              }}
+            >
+              <button
+                type="button"
+                title="Switch to Operations Portal (Chaitanya)"
+                onClick={() => {
+                  signInAsDemo('operations');
+                  navigate('/overview');
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: (role === 'operations_manager' || role === 'admin' || role === 'manager' || role === 'operations') ? '#1d6df7' : 'transparent',
+                  color: (role === 'operations_manager' || role === 'admin' || role === 'manager' || role === 'operations') ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>🛡️</span>
+                <span>Ops (Chaitanya)</span>
+              </button>
+
+              <button
+                type="button"
+                title="Switch to Customer Portal (Liyana)"
+                onClick={() => {
+                  signInAsDemo('customer');
+                  navigate('/customer/dashboard');
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: role === 'customer' ? '#10b981' : 'transparent',
+                  color: role === 'customer' ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>🏢</span>
+                <span>Customer (Liyana)</span>
+              </button>
+
+              <button
+                type="button"
+                title="Switch to Worker Portal (Manu)"
+                onClick={() => {
+                  signInAsDemo('employee');
+                  navigate('/employee/dashboard');
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: (role === 'employee' || role === 'field_worker') ? '#f59e0b' : 'transparent',
+                  color: (role === 'employee' || role === 'field_worker') ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>⚡</span>
+                <span>Worker (Manu)</span>
+              </button>
+            </div>
+
             {/* Theme Toggle */}
             <ThemeToggle />
 

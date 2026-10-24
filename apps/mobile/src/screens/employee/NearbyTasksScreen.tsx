@@ -156,9 +156,14 @@ export const NearbyTasksScreen: React.FC<NearbyTasksScreenProps> = ({
                   <Text style={styles.rewardAmount}>₹{task.rewardInr}</Text>
                 </View>
 
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => onAcceptTask(task)}>
-                  <Text style={styles.acceptBtnText}>Accept Task →</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  <TouchableOpacity style={styles.acceptBtn} onPress={() => onAcceptTask(task)}>
+                    <Text style={styles.acceptBtnText}>Accept Task →</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.declineBtn} onPress={() => handleReject(task)}>
+                    <Text style={styles.declineBtnText}>Decline</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))

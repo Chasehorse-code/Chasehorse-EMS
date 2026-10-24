@@ -1,12 +1,12 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Shield, Lock, Mail, KeyRound, AlertCircle, CheckCircle2, ArrowRight, Briefcase, Building2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { Shield, Lock, Mail, KeyRound, AlertCircle, CheckCircle2, ArrowRight, Briefcase, Building2, Zap } from 'lucide-react';
+import { useAuth, DEMO_PROFILES, type DemoRole } from '@/context/AuthContext';
 import { useRole } from '@/context/RoleContext';
 import type { Role } from '@/types';
 
 export function LoginPage() {
-  const { signIn, verifyEmailOtp, signInWithOtp, resetPassword, profile, refreshProfile, error: authError } = useAuth();
+  const { signIn, verifyEmailOtp, signInWithOtp, resetPassword, profile, refreshProfile, error: authError, signInAsDemo } = useAuth();
   const { setRole } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,6 +56,20 @@ export function LoginPage() {
     } else {
       // On-field worker -> nearby tasks
       navigate('/nearby', { replace: true });
+    }
+  };
+
+  const handleDemoLogin = async (demoKey: DemoRole) => {
+    setLoading(true);
+    setLocalError(null);
+    try {
+      await signInAsDemo(demoKey);
+      const demo = DEMO_PROFILES[demoKey];
+      navigate(demo.targetPath, { replace: true });
+    } catch {
+      setLocalError('Failed to initialize demo login.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -226,6 +240,107 @@ export function LoginPage() {
             }}>
               <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>{infoMessage}</div>
+            </div>
+          )}
+
+          {/* ⚡ 1-Click Instant Demo Access (Evaluation Mode) */}
+          {step === 'password' && (
+            <div
+              style={{
+                marginBottom: '1.25rem',
+                padding: '1rem',
+                borderRadius: '12px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap size={14} color="#38bdf8" /> 1-Click Instant Demo Login
+                </span>
+                <span style={{ fontSize: '0.675rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', fontWeight: 600 }}>
+                  No Credentials
+                </span>
+              </div>
+              <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.775rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                Instant access to any role for review & grading:
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('operations')}
+                  disabled={loading}
+                  style={{
+                    padding: '8px 6px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    background: '#0f172a',
+                    color: '#f8fafc',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '1.15rem' }}>🛡️</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc' }}>Operations</span>
+                  <span style={{ fontSize: '0.65rem', color: '#38bdf8' }}>Chaitanya</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('customer')}
+                  disabled={loading}
+                  style={{
+                    padding: '8px 6px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    background: '#0f172a',
+                    color: '#f8fafc',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '1.15rem' }}>🏢</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc' }}>Customer</span>
+                  <span style={{ fontSize: '0.65rem', color: '#34d399' }}>Liyana</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('employee')}
+                  disabled={loading}
+                  style={{
+                    padding: '8px 6px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    background: '#0f172a',
+                    color: '#f8fafc',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '1.15rem' }}>⚡</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc' }}>Worker</span>
+                  <span style={{ fontSize: '0.65rem', color: '#fbbf24' }}>Manu</span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', margin: '0.75rem 0 0.25rem 0', gap: '8px' }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+                <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>or use credentials</span>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+              </div>
             </div>
           )}
 
