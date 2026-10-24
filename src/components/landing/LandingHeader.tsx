@@ -1,46 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { ChaseHorseLogo } from '@/components/ui/ChaseHorseLogo';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthModalView } from '@/components/auth/AuthModal';
 
 export interface LandingHeaderProps {
-  onOpenAuth: (view: AuthModalView) => void;
+  onOpenAuth?: (view: AuthModalView) => void;
 }
 
-export function LandingHeader({ onOpenAuth }: LandingHeaderProps) {
+export function LandingHeader({ onOpenAuth: _onOpenAuth }: LandingHeaderProps) {
   const { session } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>('');
 
-  // Scroll listener for sticky glass header border/shadow & scroll-spy
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPos = window.scrollY;
-      setIsScrolled(scrollPos > 10);
-
-      // Scroll-spy section tracking
-      const sections = ['how-it-works', 'roles', 'evidence-ai'];
-      const scrollY = window.scrollY + 120;
-
-      for (const sectionId of sections) {
-        const el = document.getElementById(sectionId);
-        if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollY >= top && scrollY < top + height) {
-            setActiveSection(sectionId);
-            return;
-          }
-        }
-      }
-      if (scrollPos < 200) {
-        setActiveSection('');
-      }
+      setIsScrolled(window.scrollY > 10);
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
@@ -58,66 +35,120 @@ export function LandingHeader({ onOpenAuth }: LandingHeaderProps) {
   return (
     <header className={`landing-header ${isScrolled ? 'landing-header--scrolled' : ''}`}>
       <div className="landing-header__inner">
-        {/* Brand / Logo Mark */}
-        <Link to="/" className="landing-brand" aria-label="ChaseHorse Field Ops ERP">
-          <div className="landing-brand__logo" aria-hidden="true">
-            CH
-          </div>
-          <div className="landing-brand__text">
-            <span className="landing-brand__name">ChaseHorse</span>
-            <span className="landing-brand__tag">FIELD OPS ERP</span>
-          </div>
+        {/* Brand Logo matching Screenshot 3 */}
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <ChaseHorseLogo theme="light" size="md" />
         </Link>
 
-        {/* Desktop Navigation Links with Scroll-Spy Highlighting */}
+        {/* Desktop Navigation Links matching Screenshot 3 */}
         <nav className="landing-nav" aria-label="Primary site navigation">
           <a
             href="#how-it-works"
             onClick={(e) => handleNavClick(e, 'how-it-works')}
-            className={`landing-nav__link ${activeSection === 'how-it-works' ? 'landing-nav__link--active' : ''}`}
+            className="landing-nav__link"
           >
-            Task Lifecycle
+            How it works
           </a>
           <a
-            href="#roles"
-            onClick={(e) => handleNavClick(e, 'roles')}
-            className={`landing-nav__link ${activeSection === 'roles' ? 'landing-nav__link--active' : ''}`}
+            href="#businesses"
+            onClick={(e) => handleNavClick(e, 'businesses')}
+            className="landing-nav__link"
           >
-            Platform Roles
+            Businesses
           </a>
           <a
-            href="#evidence-ai"
-            onClick={(e) => handleNavClick(e, 'evidence-ai')}
-            className={`landing-nav__link ${activeSection === 'evidence-ai' ? 'landing-nav__link--active' : ''}`}
+            href="#field-workers"
+            onClick={(e) => handleNavClick(e, 'field-workers')}
+            className="landing-nav__link"
           >
-            Geo-Tag & Gemini AI
+            Field workers
+          </a>
+          <a
+            href="#verification"
+            onClick={(e) => handleNavClick(e, 'verification')}
+            className="landing-nav__link"
+          >
+            Verification
+          </a>
+          <a
+            href="#rewards"
+            onClick={(e) => handleNavClick(e, 'rewards')}
+            className="landing-nav__link"
+          >
+            Rewards
           </a>
         </nav>
 
         {/* Header Action Controls */}
-        <div className="landing-header__actions">
-          <ThemeToggle />
-
+        <div className="landing-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {session ? (
-            <Link to="/overview" className="btn btn--primary btn--sm btn--sheen">
-              Launch Console <ArrowRight size={14} className="btn-arrow" />
+            <Link
+              to="/overview"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                background: '#111315',
+                color: '#ffffff',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              Console <ArrowRight size={14} />
             </Link>
           ) : (
             <>
-              <button
-                type="button"
-                onClick={() => onOpenAuth('login')}
-                className="btn btn--ghost btn--sm btn--header-login"
+              <Link
+                to="/login"
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  color: 'var(--ink, #111315)',
+                  textDecoration: 'none',
+                  padding: '8px 10px',
+                }}
               >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenAuth('worker')}
-                className="btn btn--primary btn--sm btn--sheen"
+                Sign in
+              </Link>
+
+              <Link
+                to="/register/worker"
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  color: 'var(--ink, #111315)',
+                  textDecoration: 'none',
+                  padding: '8px 10px',
+                }}
               >
-                Join as Worker
-              </button>
+                Join as worker
+              </Link>
+
+              <Link
+                to="/register/customer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '9px 16px',
+                  borderRadius: '8px',
+                  background: '#111315',
+                  color: '#ffffff',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#262930')}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = '#111315')}
+              >
+                <span>Post a task</span>
+                <ArrowRight size={14} />
+              </Link>
             </>
           )}
 
@@ -141,69 +172,64 @@ export function LandingHeader({ onOpenAuth }: LandingHeaderProps) {
             <a
               href="#how-it-works"
               onClick={(e) => handleNavClick(e, 'how-it-works')}
-              className={`landing-mobile-nav__link ${activeSection === 'how-it-works' ? 'landing-mobile-nav__link--active' : ''}`}
+              className="landing-mobile-nav__link"
             >
-              Task Lifecycle
+              How it works
             </a>
             <a
-              href="#roles"
-              onClick={(e) => handleNavClick(e, 'roles')}
-              className={`landing-mobile-nav__link ${activeSection === 'roles' ? 'landing-mobile-nav__link--active' : ''}`}
+              href="#businesses"
+              onClick={(e) => handleNavClick(e, 'businesses')}
+              className="landing-mobile-nav__link"
             >
-              Platform Roles
+              Businesses
             </a>
             <a
-              href="#evidence-ai"
-              onClick={(e) => handleNavClick(e, 'evidence-ai')}
-              className={`landing-mobile-nav__link ${activeSection === 'evidence-ai' ? 'landing-mobile-nav__link--active' : ''}`}
+              href="#field-workers"
+              onClick={(e) => handleNavClick(e, 'field-workers')}
+              className="landing-mobile-nav__link"
             >
-              Geo-Tag & Gemini AI
+              Field workers
+            </a>
+            <a
+              href="#verification"
+              onClick={(e) => handleNavClick(e, 'verification')}
+              className="landing-mobile-nav__link"
+            >
+              Verification
+            </a>
+            <a
+              href="#rewards"
+              onClick={(e) => handleNavClick(e, 'rewards')}
+              className="landing-mobile-nav__link"
+            >
+              Rewards
             </a>
           </nav>
 
-          <div className="landing-mobile-drawer__actions">
-            {!session ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAuth('login');
-                  }}
-                  className="btn btn--secondary btn--block"
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAuth('worker');
-                  }}
-                  className="btn btn--primary btn--block btn--sheen"
-                >
-                  Join as On-Field Worker
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAuth('customer');
-                  }}
-                  className="btn btn--ghost btn--block"
-                >
-                  Post Tasks as Customer →
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/overview"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn btn--primary btn--block"
-              >
-                Launch Console →
-              </Link>
-            )}
+          <div className="landing-mobile-drawer__actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '1rem' }}>
+            <Link
+              to="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="btn btn--secondary btn--block"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/register/worker"
+              onClick={() => setMobileMenuOpen(false)}
+              className="btn btn--block"
+              style={{ background: '#ffffff', border: '1px solid #dcd7cc', color: '#111315', fontWeight: 600 }}
+            >
+              Join as worker
+            </Link>
+            <Link
+              to="/register/customer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="btn btn--block"
+              style={{ background: '#111315', color: '#ffffff', fontWeight: 600 }}
+            >
+              Post a task →
+            </Link>
           </div>
         </div>
       )}

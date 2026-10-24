@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Briefcase,
   Building2,
@@ -11,12 +11,12 @@ import {
   Sparkles,
   Wallet,
   ArrowRight,
-  CheckCircle2,
+  ArrowUpRight,
   Check,
   Compass,
 } from 'lucide-react';
 import { LandingHeader } from '@/components/landing/LandingHeader';
-import { LiveRadarCard } from '@/components/landing/LiveRadarCard';
+import { LandingHeroVisual } from '@/components/landing/LandingHeroVisual';
 import { AuthModal, type AuthModalView } from '@/components/auth/AuthModal';
 
 export interface LandingPageProps {
@@ -45,109 +45,216 @@ export function LandingPage({ initialAuthView }: LandingPageProps) {
 
   const handleCloseAuth = () => {
     setAuthModalOpen(false);
-    // If user arrived via deep-link (e.g. /login), smoothly replace URL with /
     if (location.pathname !== '/') {
       navigate('/', { replace: true });
     }
   };
 
   return (
-    <div className="landing-page-root">
-      {/* Sticky Glass Top Header */}
+    <div className="landing-page-root" data-theme="light">
+      {/* Sticky Top Header */}
       <LandingHeader onOpenAuth={handleOpenAuth} />
 
       <main id="main-content">
         {/* ==========================================================================
-            Hero Section (Two Columns, Staggered Load Animation)
+            Hero Section matching Screenshot 3
             ========================================================================== */}
-        <section className="hero-section" aria-labelledby="hero-heading">
-          <div className="hero-section__container">
-            {/* Left Column: Copy & Triggers */}
-            <div className="hero-content">
-              {/* Top Pill with Pulsing Green Dot */}
-              <div className="hero-pill-badge" role="status">
-                <span className="hero-pill-pulse-dot" aria-hidden="true" />
-                <span>Pan-India field operations · AI evidence checks · Instant wallet credit</span>
-              </div>
+        <section
+          className="hero-section"
+          aria-labelledby="hero-heading"
+          style={{
+            background: 'var(--bg)',
+            padding: '3.5rem 0 4.5rem 0',
+            borderBottom: '1px solid var(--line)',
+          }}
+        >
+          <div className="landing-container">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1.25fr)',
+                gap: 'clamp(2rem, 4vw, 4rem)',
+                alignItems: 'center',
+              }}
+              className="hero-grid-responsive"
+            >
+              {/* Left Column: Copy & Triggers */}
+              <div className="hero-content" style={{ maxWidth: '580px' }}>
+                {/* Top Pill with Orange Square */}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.6875rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.12em',
+                    color: 'var(--ink)',
+                    textTransform: 'uppercase',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      backgroundColor: 'var(--accent-orange)',
+                      borderRadius: '1px',
+                    }}
+                  />
+                  <span>FIELD OPERATIONS PLATFORM · INDIA</span>
+                </div>
 
-              {/* Main Heading with Animated Underline on "paid on approval." */}
-              <h1 id="hero-heading" className="hero-title">
-                Field tasks done on site, proven on camera,{' '}
-                <span className="hero-title-highlight">
-                  paid on approval.
-                  <svg
-                    className="hero-underline-svg"
-                    viewBox="0 0 280 14"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
+                {/* Main Heading */}
+                <h1
+                  id="hero-heading"
+                  style={{
+                    fontSize: 'clamp(2.4rem, 4.2vw, 3.75rem)',
+                    fontWeight: 800,
+                    lineHeight: 1.08,
+                    color: 'var(--ink)',
+                    letterSpacing: '-0.03em',
+                    margin: '0 0 1.25rem 0',
+                    fontFamily: 'var(--font-heading)',
+                  }}
+                >
+                  Every field task, verified where it happens.
+                </h1>
+
+                {/* Supporting Paragraph */}
+                <p
+                  style={{
+                    fontSize: '1.05rem',
+                    lineHeight: 1.6,
+                    color: 'var(--muted)',
+                    margin: '0 0 2.25rem 0',
+                  }}
+                >
+                  ChaseHorse connects businesses that need work done on the ground with field workers nearby — and gives operations teams the location record, photo evidence and review trail to sign off on each task.
+                </p>
+
+                {/* Action CTAs */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                    marginBottom: '3rem',
+                  }}
+                >
+                  <Link
+                    to="/register/customer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '13px 24px',
+                      borderRadius: '8px',
+                      background: 'var(--accent-orange)',
+                      color: '#ffffff',
+                      fontSize: '0.9375rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      boxShadow: '0 4px 14px rgba(235, 87, 36, 0.3)',
+                      transition: 'background 0.15s ease, transform 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--accent-orange-hover, #d84513)')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--accent-orange, #eb5724)')}
                   >
-                    <path
-                      d="M 4 10 C 60 4, 180 3, 276 9"
-                      stroke="var(--blue)"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
-              </h1>
+                    <span>Post field tasks</span>
+                    <ArrowRight size={16} />
+                  </Link>
 
-              {/* Supporting Paragraph */}
-              <p className="hero-lead">
-                Empowering enterprises to create field tasks and on-field workers to discover nearby work, capture geo-tagged proof, verify compliance with Gemini AI, and earn instant rewards.
-              </p>
+                  <Link
+                    to="/register/worker"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '13px 22px',
+                      borderRadius: '8px',
+                      background: 'var(--surface)',
+                      color: 'var(--ink)',
+                      border: '1px solid var(--line)',
+                      fontSize: '0.9375rem',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                    }}
+                  >
+                    Join as a field worker
+                  </Link>
 
-              {/* Three Action CTAs */}
-              <div className="hero-ctas">
-                <button
-                  type="button"
-                  onClick={() => handleOpenAuth('worker')}
-                  className="btn btn--primary btn--hero-lg btn--sheen"
+                  <Link
+                    to="/login"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                      textDecoration: 'none',
+                      padding: '8px 12px',
+                    }}
+                  >
+                    <span>Operations sign in</span>
+                    <ArrowUpRight size={15} />
+                  </Link>
+                </div>
+
+                {/* 3 Numbered Value Props matching Screenshot 3 */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                    gap: '18px',
+                    borderTop: '1px solid var(--line)',
+                    paddingTop: '1.75rem',
+                  }}
                 >
-                  <Briefcase size={18} />
-                  <span>Join as On-Field Worker</span>
-                  <ArrowRight size={16} className="btn-arrow" />
-                </button>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', marginBottom: '4px' }}>
+                      01
+                    </div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '2px' }}>
+                      Radius check-in
+                    </div>
+                    <div style={{ fontSize: '0.775rem', color: 'var(--muted)', lineHeight: 1.4 }}>
+                      Work unlocks only inside the task's allowed radius.
+                    </div>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenAuth('customer')}
-                  className="btn btn--secondary btn--hero-lg"
-                >
-                  <Building2 size={18} />
-                  <span>Post Tasks</span>
-                </button>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', marginBottom: '4px' }}>
+                      02
+                    </div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '2px' }}>
+                      Geo-stamped photos
+                    </div>
+                    <div style={{ fontSize: '0.775rem', color: 'var(--muted)', lineHeight: 1.4 }}>
+                      Coordinates, accuracy, address and time on every image.
+                    </div>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenAuth('login')}
-                  className="btn btn--ghost btn--hero-lg"
-                >
-                  <span>Operations Login</span>
-                  <ArrowRight size={16} className="btn-arrow" />
-                </button>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', marginBottom: '4px' }}>
+                      03
+                    </div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--ink)', marginBottom: '2px' }}>
+                      Reviewed, then paid
+                    </div>
+                    <div style={{ fontSize: '0.775rem', color: 'var(--muted)', lineHeight: 1.4 }}>
+                      Operations approves before any reward is released.
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Hero Micro Value Props */}
-              <div className="hero-check-row">
-                <div className="hero-check-item">
-                  <CheckCircle2 size={16} className="hero-check-icon" />
-                  <span>PostGIS 2 km Geofencing</span>
-                </div>
-                <div className="hero-check-item">
-                  <CheckCircle2 size={16} className="hero-check-icon" />
-                  <span>Exif GPS Coordinate Overlay</span>
-                </div>
-                <div className="hero-check-item">
-                  <CheckCircle2 size={16} className="hero-check-icon" />
-                  <span>Idempotent INR Wallet Credit</span>
-                </div>
+              {/* Right Column: Composite Hero Visual matching Screenshot 3 */}
+              <div className="hero-visual" style={{ width: '100%' }}>
+                <LandingHeroVisual />
               </div>
-            </div>
-
-            {/* Right Column: Live Task Radius Map Card */}
-            <div className="hero-visual">
-              <LiveRadarCard />
             </div>
           </div>
         </section>

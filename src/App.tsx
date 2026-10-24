@@ -24,6 +24,10 @@ import { CustomerSupportPage } from '@/pages/CustomerSupportPage';
 import { CustomerTasksPage } from '@/pages/CustomerTasksPage';
 import { CustomerTaskDetailsPage } from '@/pages/CustomerTaskDetailsPage';
 
+import { LoginPage } from '@/pages/LoginPage';
+import { RegisterEmployeePage } from '@/pages/RegisterEmployeePage';
+import { RegisterCustomerPage } from '@/pages/RegisterCustomerPage';
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -32,13 +36,13 @@ export default function App() {
           <ToastProvider>
             <BrowserRouter>
               <Routes>
-                {/* Public & Auth Routes (Deep links render LandingPage with matching modal open) */}
+                {/* Public & Split-Screen Auth Routes matching Screenshots 1, 2, 3 */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="login" element={<LandingPage initialAuthView="login" />} />
-                <Route path="register" element={<LandingPage initialAuthView="worker" />} />
-                <Route path="register/worker" element={<LandingPage initialAuthView="worker" />} />
-                <Route path="register/employee" element={<LandingPage initialAuthView="worker" />} />
-                <Route path="register/customer" element={<LandingPage initialAuthView="customer" />} />
+                <Route path="login" element={<LoginPage />} />
+                <Route path="register" element={<RegisterEmployeePage />} />
+                <Route path="register/worker" element={<RegisterEmployeePage />} />
+                <Route path="register/employee" element={<RegisterEmployeePage />} />
+                <Route path="register/customer" element={<RegisterCustomerPage />} />
                 <Route path="pending-approval" element={<PendingApprovalPage />} />
 
                 {/* Authenticated Application Shell */}

@@ -117,16 +117,8 @@ export function AppShell() {
       <aside id="primary-nav" className={`sidebar ${navOpen ? 'sidebar--open' : ''}`} aria-label="Primary">
         {/* Brand */}
         <div className="sidebar__brand" style={{ padding: '1.25rem 1.15rem' }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit' }}>
-            <ChaseHorseLogo size={32} />
-            <div>
-              <p className="sidebar__name" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>
-                ChaseHorse
-              </p>
-              <p className="sidebar__sub" style={{ fontSize: '0.75rem', margin: 0, color: '#94a3b8' }}>
-                Field Task & Operations
-              </p>
-            </div>
+          <Link to="/" style={{ display: 'flex', flexDirection: 'column', gap: '4px', textDecoration: 'none', color: 'inherit' }}>
+            <ChaseHorseLogo theme="dark" size="sm" withSubtitle={true} />
           </Link>
           <button
             type="button"
@@ -157,8 +149,8 @@ export function AppShell() {
                     fontWeight: 600,
                     textDecoration: 'none',
                     color: isActive ? '#ffffff' : '#94a3b8',
-                    backgroundColor: isActive ? '#1d6df7' : 'transparent',
-                    boxShadow: isActive ? '0 4px 12px rgba(29, 109, 247, 0.35)' : 'none',
+                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                    boxShadow: isActive ? 'inset 3px 0 0 #eb5724' : 'none',
                     transition: 'all 0.15s ease',
                   })}
                 >
@@ -214,7 +206,7 @@ export function AppShell() {
                   fontSize: '0.775rem',
                   padding: '6px 12px',
                   borderRadius: '6px',
-                  backgroundColor: '#1d6df7',
+                  backgroundColor: '#eb5724',
                   textAlign: 'center',
                   textDecoration: 'none',
                   display: 'block',
@@ -322,8 +314,8 @@ export function AppShell() {
 
           {/* Right Header Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Quick Demo Persona Switcher for Evaluation & Testing */}
-            <div
+            {/* Demo personas are intentionally hidden in production builds. */}
+            <div hidden
               style={{
                 display: 'flex',
                 alignItems: 'center',

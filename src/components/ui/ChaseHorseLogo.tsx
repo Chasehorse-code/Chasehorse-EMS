@@ -1,30 +1,94 @@
-import type { SVGProps } from 'react';
+export interface ChaseHorseLogoProps {
+  className?: string;
+  theme?: 'dark' | 'light' | 'auto'; // 'dark' = for dark bg (white text), 'light' = for light bg (black text)
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  withSubtitle?: boolean;
+}
 
-export function ChaseHorseLogo({ size = 36, className, ...props }: { size?: number } & SVGProps<SVGSVGElement>) {
+export function ChaseHorseLogo({
+  className = '',
+  theme = 'auto',
+  size = 'md',
+  withSubtitle = false,
+}: ChaseHorseLogoProps) {
+  const sizeStyles: Record<string, { fontSize: string; letterSpacing: string; subSize: string; gap: string }> = {
+    sm: { fontSize: '1rem', letterSpacing: '0.07em', subSize: '0.55rem', gap: '2px' },
+    md: { fontSize: '1.25rem', letterSpacing: '0.08em', subSize: '0.625rem', gap: '3px' },
+    lg: { fontSize: '1.5rem', letterSpacing: '0.09em', subSize: '0.7rem', gap: '4px' },
+    xl: { fontSize: '1.85rem', letterSpacing: '0.1em', subSize: '0.75rem', gap: '5px' },
+  };
+
+  const currentSize = sizeStyles[size] || sizeStyles.md;
+
+  const textColor =
+    theme === 'dark'
+      ? '#ffffff'
+      : theme === 'light'
+      ? '#111315'
+      : 'var(--ink)';
+
+  const subColor =
+    theme === 'dark'
+      ? '#9ca3af'
+      : theme === 'light'
+      ? '#6b7280'
+      : 'var(--text-muted)';
+
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 48 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      {...props}
+    <div
+      className={`chasehorse-brand-wrap ${className}`}
+      style={{
+        display: 'inline-flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: currentSize.gap,
+        userSelect: 'none',
+        lineHeight: 1,
+      }}
     >
-      {/* Dynamic Running Stallion Silhouette */}
-      <path
-        d="M6 32C8 28 12 25 15 25C17 25 18 26 20 25C22 24 24 20 26 17C27 15 29 11 32 9C34 7 38 6 41 8C43 9 44 11 43 13C42 14 39 15 37 15C36 15 35 14 34 14C32 14 30 16 29 18C28 20 29 22 28 24C27 26 24 28 22 29C20 30 17 31 15 33C13 35 11 38 8 40C7 41 6 39 6 37C6 35 6 33 6 32Z"
-        fill="#FFFFFF"
-      />
-      <path
-        d="M20 25C22 26 25 28 28 28C31 28 35 27 38 29C40 30 42 32 44 35C45 36 43 37 42 37C39 37 36 34 33 33C30 32 27 32 25 31L20 25Z"
-        fill="#FFFFFF"
-        opacity="0.9"
-      />
-      <path
-        d="M28 24C30 23 34 22 36 24C38 26 40 29 42 32C41 33 39 33 37 31C35 29 33 27 30 26L28 24Z"
-        fill="#38BDF8"
-      />
-    </svg>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <span
+          className="chasehorse-wordmark"
+          style={{
+            fontFamily: 'var(--font-logo), "Orbitron", "Chakra Petch", sans-serif',
+            fontWeight: 800,
+            fontSize: currentSize.fontSize,
+            letterSpacing: currentSize.letterSpacing,
+            color: textColor,
+            textTransform: 'uppercase',
+            display: 'inline-block',
+          }}
+        >
+          CHASEHORSE
+        </span>
+      </div>
+
+      {withSubtitle && (
+        <span
+          className="chasehorse-tagline"
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: currentSize.subSize,
+            fontWeight: 600,
+            letterSpacing: '0.16em',
+            color: subColor,
+            textTransform: 'uppercase',
+            marginTop: '2px',
+          }}
+        >
+          GROWTH ENABLING LOGIWORX PARTNER
+        </span>
+      )}
+    </div>
   );
+}
+
+export function ChaseHorseWordmark(props: ChaseHorseLogoProps) {
+  return <ChaseHorseLogo {...props} />;
 }

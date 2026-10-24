@@ -51,12 +51,8 @@ export interface AuthContextValue {
   error: string | null;
   /** Sign in with email/password. */
   signIn: (email: string, password: string) => Promise<void>;
-  /** Verify email OTP token during login. */
-  verifyEmailOtp: (email: string, token: string) => Promise<void>;
   /** Sign up with email/password and rich metadata. */
   signUp: (email: string, password: string, metadata?: SignUpMetadata | string) => Promise<{ needsConfirmation: boolean }>;
-  /** Send an email OTP for passwordless or 2-factor login. */
-  signInWithOtp: (email: string) => Promise<void>;
   /** Send a password-reset email. */
   resetPassword: (email: string) => Promise<void>;
   /** Update password (when user has a valid session from a reset link). */
@@ -176,23 +172,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [activeDemoRole, setActiveDemoRole] = useState<DemoRole | null>(() => {
-    try {
-      const stored = window.sessionStorage?.getItem('chasehorse.demoUser') as DemoRole | null;
-      if (stored && DEMO_PROFILES[stored]) return stored;
-    } catch {}
-    return null;
-  });
+  // Kept only for backwards-compatible consumers. Production access is always
+  // backed by a real Supabase session and a server-provided profile.
+  const [activeDemoRole, setActiveDemoRole] = useState<DemoRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* --- Fetch server profile (/me) --------------------------------- */
   const fetchProfile = useCallback(async (accessToken: string): Promise<UserProfile | null> => {
-    // If it's a mock token, skip network request
-    if (accessToken.startsWith('mock-token-')) {
-      return null;
-    }
     setProfileLoading(true);
     try {
       const res = await fetch(`${API_BASE}/me`, {
@@ -230,56 +218,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /* --- 1-Click Demo Persona Sign-In ------------------------------- */
+  /* --- Disabled legacy demo sign-in -------------------------------- */
   const signInAsDemo = useCallback(async (demoKey: DemoRole) => {
-    setError(null);
-    const demo = DEMO_PROFILES[demoKey];
-    if (!demo) return;
-
-    try {
-      window.sessionStorage.setItem('chasehorse.demoUser', demoKey);
-    } catch {}
-
-    const mockSession = {
-      access_token: `mock-token-${demoKey}`,
-      token_type: 'bearer',
-      expires_in: 86400,
-      refresh_token: `mock-refresh-${demoKey}`,
-      user: demo.user,
-    } as unknown as Session;
-
-    setActiveDemoRole(demoKey);
-    setSession(mockSession);
-    setUser(demo.user);
-    setProfile(demo.profile);
-    setLoading(false);
+    void demoKey;
+    const message = 'Demo sign-in is disabled. Please sign in with an approved account.';
+    setError(message);
+    throw new Error(message);
   }, []);
 
   /* --- Listen for auth state changes ------------------------------ */
   useEffect(() => {
-    // 1. Check if demo persona was chosen previously in this session
-    let storedDemo: DemoRole | null = null;
-    try {
-      storedDemo = window.sessionStorage?.getItem('chasehorse.demoUser') as DemoRole | null;
-    } catch {}
+    // Clear any legacy local demo marker before resolving the real session.
+    try { window.sessionStorage.removeItem('chasehorse.demoUser'); } catch {}
 
-    if (storedDemo && DEMO_PROFILES[storedDemo]) {
-      const demo = DEMO_PROFILES[storedDemo];
-      setActiveDemoRole(storedDemo);
-      setUser(demo.user);
-      setProfile(demo.profile);
-      setSession({
-        access_token: `mock-token-${storedDemo}`,
-        token_type: 'bearer',
-        expires_in: 86400,
-        refresh_token: `mock-refresh-${storedDemo}`,
-        user: demo.user,
-      } as unknown as Session);
-      setLoading(false);
-      return;
-    }
-
-    // 2. Query Supabase for real session
+    // Query Supabase for a real session.
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
@@ -289,50 +241,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setLoading(false);
       } else {
-        // 3. Fallback for Local Dev / Direct Evaluation Links:
-        // Automatically activate matching demo persona based on accessed route so user is never blocked!
-        const path = window.location.pathname;
-        if (path.startsWith('/customer')) {
-          signInAsDemo('customer');
-        } else if (path.startsWith('/employee') || path === '/nearby') {
-          signInAsDemo('employee');
-        } else if (
-          path === '/overview' ||
-          path === '/tasks' ||
-          path === '/approvals' ||
-          path === '/evidence' ||
-          path === '/wallet' ||
-          path === '/employees' ||
-          path === '/checklists' ||
-          path === '/admin/dashboard'
-        ) {
-          signInAsDemo('operations');
-        } else {
-          // Public paths (/, /login, /register): keep unauthenticated for modal demo selection
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setActiveDemoRole(null);
-          setLoading(false);
-        }
-      }
-    }).catch((err) => {
-      console.warn('[Auth] Failed to get session:', err);
-      // Auto-fallback in dev
-      const path = window.location.pathname;
-      if (path.startsWith('/customer')) {
-        signInAsDemo('customer');
-      } else if (path.startsWith('/employee') || path === '/nearby') {
-        signInAsDemo('employee');
-      } else if (path === '/overview' || path === '/tasks' || path === '/approvals') {
-        signInAsDemo('operations');
-      } else {
         setSession(null);
         setUser(null);
         setProfile(null);
         setActiveDemoRole(null);
         setLoading(false);
       }
+    }).catch((err) => {
+      console.warn('[Auth] Failed to get session:', err);
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setActiveDemoRole(null);
+      setLoading(false);
     });
 
     // Subscribe to changes (login, logout, token refresh)
@@ -355,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile, signInAsDemo]);
+  }, [fetchProfile]);
 
   /* --- Auth actions ----------------------------------------------- */
 
@@ -364,26 +285,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error: e } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
-    });
-    if (e) {
-      setError(e.message);
-      throw e;
-    }
-    if (data.session) {
-      setSession(data.session);
-      setUser(data.user);
-      if (data.session.access_token) {
-        await fetchProfile(data.session.access_token);
-      }
-    }
-  }, [fetchProfile]);
-
-  const verifyEmailOtp = useCallback(async (email: string, token: string) => {
-    setError(null);
-    const { data, error: e } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'email',
     });
     if (e) {
       setError(e.message);
@@ -436,17 +337,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return { needsConfirmation };
   }, [fetchProfile]);
-
-  const signInWithOtp = useCallback(async (email: string) => {
-    setError(null);
-    const { error: e } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-    });
-    if (e) {
-      setError(e.message);
-      throw e;
-    }
-  }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     setError(null);
@@ -511,9 +401,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileLoading,
       error,
       signIn,
-      verifyEmailOtp,
       signUp,
-      signInWithOtp,
       resetPassword,
       updatePassword,
       signOut,
@@ -523,7 +411,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       activeDemoRole,
     }),
     [session, user, profile, loading, profileLoading, error,
-     signIn, verifyEmailOtp, signUp, signInWithOtp, resetPassword, updatePassword,
+     signIn, signUp, resetPassword, updatePassword,
      signOut, refreshProfile, hasRole, signInAsDemo, activeDemoRole],
   );
 

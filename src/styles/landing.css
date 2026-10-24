@@ -442,6 +442,42 @@
               radial-gradient(ellipse at 15% 80%, rgba(14, 26, 54, 0.6) 0%, transparent 55%);
 }
 
+
+.hero-grid-responsive {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.25fr);
+  gap: clamp(2rem, 4vw, 4rem);
+  align-items: center;
+}
+
+@media (max-width: 1040px) {
+  .hero-grid-responsive {
+    grid-template-columns: 1fr !important;
+    gap: 3rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-map-card {
+    width: 100% !important;
+  }
+  .hero-phone-mockup {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 auto 1.5rem auto !important;
+    width: 100% !important;
+    max-width: 280px !important;
+  }
+  .hero-review-card {
+    position: relative !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+  }
+}
+
 .hero-section__container {
   max-width: var(--content-max);
   margin: 0 auto;
@@ -2098,3 +2134,75 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+/* 2026 Field Operations redesign: design authority supplied by ChaseHorse */
+.landing-page-root { background: var(--bg); color: #111315; }
+.landing-header { background: rgba(244,242,237,.96) !important; border-bottom: 1px solid transparent; box-shadow: none !important; }
+.landing-header--scrolled { border-bottom-color: var(--line); }
+.landing-header__inner { max-width: none !important; padding: 10px 24px !important; min-height: 64px; }
+.landing-brand__logo { width: auto !important; height: auto !important; background: transparent !important; color: #111315 !important; font-family: var(--font-mono); font-size: 0 !important; border-radius: 0 !important; }
+.landing-brand__logo::after { content: 'CHASEHORSE'; font-size: 20px; font-weight: 900; letter-spacing: -1.7px; }
+.landing-brand__text { display: none !important; }
+.landing-nav { margin-left: 32px; gap: 28px !important; }
+.landing-nav__link { color: #5e646d !important; font-size: 13px !important; font-weight: 500 !important; }
+.landing-nav__link:hover,.landing-nav__link--active { color: #111315 !important; }
+.landing-header__actions { gap: 14px !important; }
+.landing-header .theme-toggle { display: none; }
+.landing-header .btn { border-radius: 5px !important; box-shadow: none !important; padding: 10px 14px !important; font-size: 12px !important; }
+.landing-header .btn--primary { background: #111315 !important; }
+.hero-section { padding: 70px 24px 48px !important; background: var(--bg) !important; }
+.hero-section__container { max-width: 1160px !important; grid-template-columns: minmax(0, .78fr) minmax(520px, 1.22fr) !important; gap: 62px !important; align-items: center !important; }
+.hero-pill-badge { background: transparent !important; border: 0 !important; padding: 0 !important; color: #273e71 !important; font: 11px var(--font-mono) !important; letter-spacing: .12em !important; text-transform: uppercase; }
+.hero-pill-pulse-dot { background: var(--accent-amber) !important; width: 7px !important; height: 7px !important; }
+.hero-title { max-width: 520px; font-family: var(--font-heading); font-size: clamp(46px,5vw,66px) !important; line-height: .97 !important; letter-spacing: -.06em !important; color: #111315 !important; margin: 24px 0 !important; }
+.hero-title-highlight { color: #111315 !important; }
+.hero-underline-svg { display: none; }
+.hero-lead { max-width: 450px; color: #424955 !important; font-size: 16px !important; line-height: 1.65 !important; }
+.hero-ctas { margin-top: 28px !important; gap: 10px !important; }
+.btn--hero-lg { padding: 13px 17px !important; font-size: 14px !important; border-radius: 5px !important; box-shadow: none !important; }
+.hero-ctas .btn--primary { background: var(--accent-amber) !important; color: #111315 !important; }
+.hero-ctas .btn--secondary { background: #fff !important; color:#111315 !important; border-color: #c9c5ba !important; }
+.hero-ctas .btn--ghost { display: none !important; }
+.hero-check-row { display: grid !important; gap: 0 !important; margin-top: 54px !important; border-top: 1px solid #262626; }
+.hero-check-item { border-bottom: 1px solid #d7d2c6; padding: 14px 0; color: #394150 !important; font-size: 13px !important; }
+.hero-check-item::first-letter { color: var(--accent-amber); }
+.hero-check-icon { color: var(--accent-amber) !important; }
+.hero-visual { min-width: 0; }
+.live-map { overflow: hidden; border: 1px solid #d4d0c5; border-radius: 9px; background: #fff; box-shadow: 0 18px 38px rgba(24,24,20,.1); }
+.live-map__header,.live-map__footer { display:flex; align-items:center; gap:10px; padding: 10px 14px; font-size:12px; }
+.live-map__header { border-bottom:1px solid #e1ded7; color:#111315; font-weight:700; }
+.live-map__header span,.live-map__footer div,.live-map__footer button { display:flex; align-items:center; gap:6px; }
+.live-map__header small { color:#5e646d; font-weight:400; }
+.live-map__canvas { height: 440px; position: relative; overflow:hidden; background:#ddd9ce; }
+.live-map__canvas iframe { border:0; width:100%; height:100%; filter: grayscale(.72) sepia(.12) contrast(.92); pointer-events:none; }
+.live-map__target { position:absolute; left:50%; top:50%; width:112px; height:112px; border:2px dashed var(--accent-amber); border-radius:50%; transform:translate(-50%,-50%); display:grid; place-items:center; }
+.live-map__target span { width:15px;height:15px;background:#05885e;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 3px #05885e; }
+.live-map__task { position:absolute; top:calc(50% - 58px); left:calc(50% + 16px); background:#111315;color:#fff;padding:6px 10px;font:11px var(--font-mono); }
+.live-map__task b { color:#ffe3b8; margin-left:8px; }
+.live-map__footer { border-top:1px solid #e1ded7; color:#344054; flex-wrap:wrap; }
+.live-map__footer button { margin-left:auto; border:1px solid #d4d0c5;background:#fff;border-radius:4px;padding:5px 8px;font-size:11px; }
+.live-map__footer small { width:100%; color:#6b7280; font:10px var(--font-mono); }
+.features-section,.roles-section,.cta-band { display:none !important; }
+.lifecycle-section { padding: 24px 24px 80px !important; background: var(--bg) !important; }
+.lifecycle-section .section-header { display:none; }
+.lifecycle-grid { max-width:1160px !important; grid-template-columns:repeat(3,1fr) !important; gap:0 !important; margin:0 auto !important; }
+.lifecycle-card { border-radius:0 !important; border:0 !important; border-top:1px solid #d7d2c6 !important; border-bottom:1px solid #d7d2c6 !important; box-shadow:none !important; background:transparent !important; padding:20px 14px 20px 0 !important; }
+.lifecycle-card:not(:last-child) { margin-right:28px; }
+.lifecycle-card__step-num { background:transparent !important; color:#596171 !important; width:auto !important; height:auto !important; font:11px var(--font-mono) !important; }
+.lifecycle-card__title { color:#111315 !important; font-size:15px !important; margin:8px 0 2px !important; }
+.lifecycle-card__desc { color:#5e646d !important; font-size:13px !important; }
+@media (max-width: 900px) { .landing-nav{display:none!important}.hero-section__container{grid-template-columns:1fr!important}.hero-visual{max-width:680px;width:100%}.live-map__canvas{height:330px}.lifecycle-grid{grid-template-columns:1fr!important}.lifecycle-card:not(:last-child){margin-right:0}.hero-title{font-size:48px!important} }
+
+/* Authenticated operations dashboard carries the same field-board language. */
+.shell, .shell__main, .page { background: var(--bg) !important; }
+.sidebar { background: #15181a !important; border-right: 0 !important; }
+.sidebar__name { color: #fff !important; }
+.sidebar__sub, .sidebar__foot-label { color: #aab0b7 !important; }
+.sidebar .nav-link { border-radius: 4px !important; }
+.sidebar .nav-link--active { background: var(--accent-amber) !important; color: #111315 !important; box-shadow: none !important; }
+.topbar { background: rgba(244,242,237,.94) !important; border-bottom-color: var(--line) !important; }
+.topbar .input { background: #fff !important; border-color: #d5d1c7 !important; }
+.content, .shell__content, main.app-main { background: var(--bg) !important; }
+.card, .stat-card, .table-wrap { border-radius: 7px !important; box-shadow: none !important; }
+.page-header__title, .card__title { color: #111315; }
+.btn--primary { background: #15181a; border-radius: 5px; box-shadow: none; }
+.btn--primary:hover:not(:disabled) { background: #303438; }

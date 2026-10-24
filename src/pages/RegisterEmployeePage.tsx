@@ -1,61 +1,62 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone, MapPin, Briefcase, AlertCircle, ArrowRight, Navigation, Edit3 } from 'lucide-react';
+import { Mail, Lock, User, Phone, MapPin, AlertCircle, ArrowRight, Info } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentGpsPosition } from '@/utils/geolocation';
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
 
 export function RegisterEmployeePage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [fullName, setFullName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [region, setRegion] = useState('');
-  const [detectingGps, setDetectingGps] = useState(false);
-  const [gpsExtracted, setGpsExtracted] = useState(false);
-  const [isManualTyping, setIsManualTyping] = useState(false);
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showAboutFields, setShowAboutFields] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-extract device GPS location on mount
-  const detectLocation = async () => {
-    setDetectingGps(true);
-    try {
-      const pos = await getCurrentGpsPosition();
-      const detected = pos.address
-        ? pos.address.split(',').slice(0, 3).join(',').trim()
-        : `${pos.lat.toFixed(4)}°N, ${pos.lng.toFixed(4)}°E`;
-      setRegion(detected);
-      setGpsExtracted(true);
-    } catch {
-      setRegion('Tenali Urban, Andhra Pradesh');
-      setGpsExtracted(true);
-    } finally {
-      setDetectingGps(false);
-    }
-  };
-
+  // Auto-detect location for Step 2
   useEffect(() => {
-    detectLocation();
+    getCurrentGpsPosition()
+      .then((pos) => {
+        const detected = pos.address
+          ? pos.address.split(',').slice(0, 3).join(',').trim()
+          : `${pos.lat.toFixed(4)}°N, ${pos.lng.toFixed(4)}°E`;
+        setRegion(detected);
+      })
+      .catch(() => {
+        setRegion('Indiranagar, Bengaluru');
+      });
   }, []);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleNextStep = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!fullName.trim()) {
+      setError('Please enter your full legal name.');
+      return;
+    }
+    if (!mobileNumber.trim()) {
+      setError('Please enter your active mobile number.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleFinalSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-    if (!region) {
-      setError('Please specify your operational region or city.');
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -63,24 +64,17 @@ export function RegisterEmployeePage() {
     try {
       await signUp(email, password, {
         displayName: fullName,
-        phone,
-        region,
+        phone: mobileNumber,
+        region: region || 'Bengaluru East',
         accountType: 'EMPLOYEE',
         subRole: 'field_worker',
       });
 
-      // Navigate to pending approval page for on-field workers
-      navigate('/pending-approval', {
-        state: { email, fullName, region },
-        replace: true,
-      });
+      navigate('/pending-approval');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      const msg = err instanceof Error ? err.message : 'Registration failed.';
       if (msg.toLowerCase().includes('rate limit')) {
-        navigate('/pending-approval', {
-          state: { email, fullName, region },
-          replace: true,
-        });
+        navigate('/pending-approval');
         return;
       }
       setError(msg);
@@ -90,333 +84,478 @@ export function RegisterEmployeePage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem 1rem',
-      background: 'radial-gradient(ellipse at 50% 0%, var(--color-surface-sunken, #0f172a) 0%, var(--color-bg, #090d16) 100%)',
-    }}>
-      <div style={{ width: '100%', maxWidth: '520px' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{
-            display: 'inline-flex',
+    <AuthSplitLayout
+      subTag="FOR FIELD WORKERS"
+      tagline="Pick up paid tasks near you. Your reward is credited when the work is approved."
+      previewCardDecision="₹450 credited"
+      previewCardStatus="approved"
+    >
+      {/* Category Tag */}
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '0.6875rem',
+          fontWeight: 700,
+          letterSpacing: '0.12em',
+          color: '#2563eb',
+          textTransform: 'uppercase',
+          marginBottom: '0.5rem',
+        }}
+      >
+        <User size={13} />
+        <span>Field Worker</span>
+      </div>
+
+      {/* Heading */}
+      <h1
+        style={{
+          margin: '0 0 0.35rem 0',
+          fontSize: '1.875rem',
+          fontWeight: 700,
+          color: '#111315',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Join as a field worker
+      </h1>
+      <p
+        style={{
+          margin: '0 0 1.5rem 0',
+          fontSize: '0.875rem',
+          color: '#6b7280',
+          lineHeight: 1.45,
+        }}
+      >
+        Takes about two minutes. New accounts are reviewed before you can accept tasks.
+      </p>
+
+      {/* 2-Step Progress Indicator */}
+      <div
+        style={{
+          display: 'flex',
+          borderBottom: '1px solid #e5e7eb',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setStep(1)}
+          style={{
+            padding: '8px 12px 10px 0',
+            border: 'none',
+            background: 'none',
+            fontSize: '0.8125rem',
+            fontWeight: step === 1 ? 700 : 500,
+            color: step === 1 ? '#111315' : '#6b7280',
+            borderBottom: step === 1 ? '2px solid #2563eb' : '2px solid transparent',
+            marginBottom: '-1px',
+            cursor: 'pointer',
+          }}
+        >
+          1. About you
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (fullName && mobileNumber && email) setStep(2);
+          }}
+          style={{
+            padding: '8px 12px 10px 16px',
+            border: 'none',
+            background: 'none',
+            fontSize: '0.8125rem',
+            fontWeight: step === 2 ? 700 : 500,
+            color: step === 2 ? '#111315' : '#6b7280',
+            borderBottom: step === 2 ? '2px solid #2563eb' : '2px solid transparent',
+            marginBottom: '-1px',
+            cursor: 'pointer',
+          }}
+        >
+          2. Work area
+        </button>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            width: '54px',
-            height: '54px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            boxShadow: '0 8px 20px -4px rgba(37, 99, 235, 0.4)',
-            marginBottom: '0.75rem',
-          }}>
-            <Briefcase size={28} color="#ffffff" />
-          </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.35rem 0', letterSpacing: '-0.02em', color: 'var(--color-text, #f8fafc)' }}>
-            Join as On-Field Worker
-          </h1>
-          <p style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.9rem', margin: 0 }}>
-            Execute local field tasks, record geo-tagged proof, and earn verified rewards
-          </p>
+            gap: '8px',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: '#fdecee',
+            border: '1px solid #f87171',
+            color: '#991b1b',
+            fontSize: '0.8125rem',
+            marginBottom: '1rem',
+          }}
+        >
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
         </div>
+      )}
 
-        {/* Card */}
-        <div style={{
-          background: 'var(--color-surface, #1e293b)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-border, #334155)',
-          padding: '2rem',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
-        }}>
-          {error && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem',
-              padding: '0.875rem',
+      {/* Step 1: About You */}
+      {step === 1 && (
+        <form onSubmit={handleNextStep} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Full name
+            </label>
+            <div style={{ position: 'relative' }}>
+              <User
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af',
+                }}
+              />
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="As on your ID"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 38px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#111315',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Mobile number
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Phone
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af',
+                }}
+              />
+              <input
+                type="tel"
+                required
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                placeholder="+91 98450 12345"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 38px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#111315',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Email
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Mail
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af',
+                }}
+              />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 38px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#111315',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Continue Button */}
+          <button
+            type="submit"
+            style={{
+              width: '100%',
+              padding: '11px 16px',
               borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#f87171',
+              border: 'none',
+              background: '#111315',
+              color: '#ffffff',
               fontSize: '0.875rem',
-              marginBottom: '1.25rem',
-            }}>
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>{error}</div>
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+              marginTop: '0.25rem',
+              transition: 'background 0.15s ease',
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#22252a')}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = '#111315')}
+          >
+            <span>Continue</span>
+            <ArrowRight size={16} />
+          </button>
+        </form>
+      )}
+
+      {/* Step 2: Work Area & Security */}
+      {step === 2 && (
+        <form onSubmit={handleFinalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Primary work operational zone
+            </label>
+            <div style={{ position: 'relative' }}>
+              <MapPin
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af',
+                }}
+              />
+              <input
+                type="text"
+                required
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                placeholder="Indiranagar, Bengaluru"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 38px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#111315',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
-          )}
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.725rem', color: '#6b7280' }}>
+              Nearby tasks within 15 km of this area will be shown in your feed.
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted, #94a3b8)' }}>
-                Full Name
-              </label>
-              <div style={{ position: 'relative' }}>
-                <User size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Rahul Sharma"
-                  className="input"
-                  style={{ width: '100%', paddingLeft: '38px', boxSizing: 'border-box' }}
-                />
-              </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Set account password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af',
+                }}
+              />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min 6 characters"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 38px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#111315',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
+          </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted, #94a3b8)' }}>
-                  Email Address
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="worker@chasehorse.com"
-                    className="input"
-                    style={{ width: '100%', paddingLeft: '38px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted, #94a3b8)' }}>
-                  Mobile Phone
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="input"
-                    style={{ width: '100%', paddingLeft: '38px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Operating City / Region with Auto-Extract & Manual Typing Button */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-text-muted, #94a3b8)' }}>
-                  Operating City / Region
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={detectLocation}
-                    disabled={detectingGps}
-                    style={{
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38bdf8',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    <Navigation size={12} className={detectingGps ? 'spin' : ''} />
-                    {detectingGps ? 'Extracting GPS...' : 'Auto-Extract GPS'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsManualTyping((prev) => !prev);
-                    }}
-                    style={{
-                      background: isManualTyping ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.1)',
-                      border: isManualTyping ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(148, 163, 184, 0.25)',
-                      color: isManualTyping ? '#34d399' : '#cbd5e1',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    <Edit3 size={12} />
-                    {isManualTyping ? 'Manual Typing Active' : 'Click to Type Manually'}
-                  </button>
-                </div>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <MapPin size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: gpsExtracted && !isManualTyping ? '#10b981' : '#38bdf8' }} />
-                <input
-                  type="text"
-                  required
-                  value={region}
-                  readOnly={!isManualTyping}
-                  onClick={() => {
-                    if (!isManualTyping) setIsManualTyping(true);
-                  }}
-                  onChange={(e) => {
-                    setRegion(e.target.value);
-                    setGpsExtracted(false);
-                  }}
-                  placeholder="Auto-extracting location..."
-                  className="input"
-                  style={{
-                    width: '100%',
-                    paddingLeft: '38px',
-                    paddingRight: '120px',
-                    boxSizing: 'border-box',
-                    cursor: !isManualTyping ? 'default' : 'text',
-                    borderColor: gpsExtracted && !isManualTyping ? 'rgba(16, 185, 129, 0.4)' : undefined,
-                  }}
-                />
-                {!isManualTyping ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsManualTyping(true)}
-                    style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      color: '#93c5fd',
-                      fontSize: '0.725rem',
-                      fontWeight: 600,
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <Edit3 size={11} /> Type Manually
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsManualTyping(false);
-                      detectLocation();
-                    }}
-                    style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38bdf8',
-                      fontSize: '0.725rem',
-                      fontWeight: 600,
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <Navigation size={11} /> Reset to GPS
-                  </button>
-                )}
-              </div>
-              {gpsExtracted && !isManualTyping && (
-                <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>✓ Extracted automatically from device GPS location</span>
-                </div>
-              )}
-              {isManualTyping && (
-                <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>Manual typing mode active — edit city or region freely</span>
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted, #94a3b8)' }}>
-                  Password
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="input"
-                    style={{ width: '100%', paddingLeft: '38px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-muted, #94a3b8)' }}>
-                  Confirm Password
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="input"
-                    style={{ width: '100%', paddingLeft: '38px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-            </div>
-
+          <div style={{ display: 'flex', gap: '8px', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              style={{
+                padding: '11px 14px',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                background: '#ffffff',
+                color: '#374151',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Back
+            </button>
             <button
               type="submit"
               disabled={loading}
-              className="btn btn--primary"
               style={{
-                width: '100%',
-                padding: '12px',
+                flex: 1,
+                padding: '11px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#111315',
+                color: '#ffffff',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: loading ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                marginTop: '0.5rem',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
               }}
             >
-              {loading ? 'Submitting Registration...' : 'Register as On-Field Worker'}
-              {!loading && <ArrowRight size={16} />}
+              <span>{loading ? 'Submitting registration...' : 'Submit Application'}</span>
+              <ArrowRight size={16} />
             </button>
-          </form>
-
-          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border, #334155)', fontSize: '0.875rem' }}>
-            <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>Already have an account? </span>
-            <Link to="/login" style={{ color: '#3b82f6', fontWeight: 600, textDecoration: 'none' }}>
-              Sign In
-            </Link>
-            <div style={{ marginTop: '0.5rem' }}>
-              <Link to="/register/customer" style={{ color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.8rem', textDecoration: 'none' }}>
-                Need to create tasks? Register as Business Customer →
-              </Link>
-            </div>
           </div>
-        </div>
+        </form>
+      )}
+
+      {/* Already have an account link */}
+      <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+        <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+          Already have an account?{' '}
+        </span>
+        <Link
+          to="/login"
+          style={{
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            color: '#2563eb',
+            textDecoration: 'none',
+          }}
+        >
+          Sign in
+        </Link>
       </div>
-    </div>
+
+      {/* About these fields accordion */}
+      <div style={{ marginTop: '1.5rem' }}>
+        <button
+          type="button"
+          onClick={() => setShowAboutFields(!showAboutFields)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            fontSize: '0.75rem',
+            color: '#6b7280',
+            cursor: 'pointer',
+          }}
+        >
+          <Info size={14} />
+          <span>About these fields</span>
+        </button>
+
+        {showAboutFields && (
+          <div
+            style={{
+              marginTop: '0.5rem',
+              padding: '0.75rem',
+              borderRadius: '6px',
+              background: 'rgba(0, 0, 0, 0.03)',
+              fontSize: '0.725rem',
+              color: '#4b5563',
+              lineHeight: 1.45,
+            }}
+          >
+            We use your name and mobile number to verify field submissions and credit your wallet. Your data is encrypted and only shared with operations managers reviewing your work.
+          </div>
+        )}
+      </div>
+    </AuthSplitLayout>
   );
 }

@@ -42,12 +42,11 @@ function getSystemPreference(): 'light' | 'dark' {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Respect user stored choice first; if never chosen, respect prefers-color-scheme fallback (defaulting to light)
+  // Default to light paper & carbon signature theme
   const [theme, setThemeState] = useState<Theme>(() => {
     const saved = getStoredTheme();
     if (saved) return saved;
-    // Default to light (white and blue); respect prefers-color-scheme only if explicitly dark
-    return getSystemPreference() === 'dark' ? 'system' : 'light';
+    return 'light';
   });
 
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => getSystemPreference());

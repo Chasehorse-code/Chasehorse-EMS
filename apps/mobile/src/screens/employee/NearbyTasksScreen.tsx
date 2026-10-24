@@ -54,6 +54,16 @@ export const NearbyTasksScreen: React.FC<NearbyTasksScreenProps> = ({
     loadTasks();
   };
 
+  const handleReject = async (task: Task) => {
+    try {
+      await mobileApi.rejectTask(task.id, user?.token);
+      setTasks((current) => current.filter((item) => item.id !== task.id));
+      Alert.alert('Task declined', 'The operations team has been notified.');
+    } catch (error) {
+      Alert.alert('Unable to decline task', error instanceof Error ? error.message : 'Please try again.');
+    }
+  };
+
   const handleSyncGps = () => {
     const offset = (Math.random() - 0.5) * 0.002;
     const updated = {
@@ -336,6 +346,18 @@ const styles = StyleSheet.create({
   },
   acceptBtnText: {
     color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  declineBtn: {
+    borderWidth: 1,
+    borderColor: colors.borderDark,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  declineBtnText: {
+    color: colors.textLightMuted,
     fontSize: 13,
     fontWeight: '700',
   },
