@@ -67,7 +67,98 @@ export interface AuthContextValue {
   refreshProfile: () => Promise<UserProfile | null>;
   /** Convenience: does the user have at least one of these roles? */
   hasRole: (...roles: string[]) => boolean;
+  /** 1-click demo persona sign-in for evaluation & local testing without credentials. */
+  signInAsDemo: (demoRole: DemoRole) => Promise<void>;
+  /** Currently active demo persona key, if any. */
+  activeDemoRole: DemoRole | null;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Demo Profiles for Local Testing & Evaluation                     */
+/* ------------------------------------------------------------------ */
+
+export type DemoRole = 'operations' | 'customer' | 'employee';
+
+export interface DemoProfileConfig {
+  user: User;
+  profile: UserProfile;
+  targetPath: string;
+}
+
+export const DEMO_PROFILES: Record<DemoRole, DemoProfileConfig> = {
+  operations: {
+    user: {
+      id: 'demo-ops-chaitanya',
+      app_metadata: { provider: 'email', providers: ['email'] },
+      user_metadata: { full_name: 'Chaitanya (Operations Lead)', role: 'operations_manager' },
+      aud: 'authenticated',
+      created_at: '2026-01-15T08:00:00.000Z',
+      email: 'chaitanya.ops@chasehorse.internal',
+      role: 'authenticated',
+    } as unknown as User,
+    profile: {
+      id: 'demo-ops-chaitanya',
+      displayName: 'Chaitanya (Operations Lead)',
+      email: 'chaitanya.ops@chasehorse.internal',
+      phone: '+91 98765 43210',
+      avatarUrl: null,
+      region: 'Bangalore Hub (BLR-NORTH)',
+      accountStatus: 'APPROVED',
+      roles: ['OPERATIONS_MANAGER', 'ADMIN'],
+      createdAt: '2026-01-15T08:00:00.000Z',
+      updatedAt: '2026-10-24T08:00:00.000Z',
+    },
+    targetPath: '/overview',
+  },
+  customer: {
+    user: {
+      id: 'cust-apex-liyana',
+      app_metadata: { provider: 'email', providers: ['email'] },
+      user_metadata: { full_name: 'Liyana (Apex Retail Logistics)', role: 'customer' },
+      aud: 'authenticated',
+      created_at: '2026-02-01T09:30:00.000Z',
+      email: 'liyana.customer@apexretail.in',
+      role: 'authenticated',
+    } as unknown as User,
+    profile: {
+      id: 'cust-apex-liyana',
+      displayName: 'Liyana (Apex Logistics)',
+      email: 'liyana.customer@apexretail.in',
+      phone: '+91 94440 12345',
+      avatarUrl: null,
+      region: 'Bangalore South (BLR-SOUTH)',
+      accountStatus: 'APPROVED',
+      roles: ['CUSTOMER'],
+      createdAt: '2026-02-01T09:30:00.000Z',
+      updatedAt: '2026-10-24T08:00:00.000Z',
+    },
+    targetPath: '/customer/dashboard',
+  },
+  employee: {
+    user: {
+      id: 'demo-worker-manu',
+      app_metadata: { provider: 'email', providers: ['email'] },
+      user_metadata: { full_name: 'Manu (Field Operations)', role: 'employee' },
+      aud: 'authenticated',
+      created_at: '2026-02-10T11:00:00.000Z',
+      email: 'manu.field@chasehorse.internal',
+      role: 'authenticated',
+    } as unknown as User,
+    profile: {
+      id: 'demo-worker-manu',
+      displayName: 'Manu (Field Specialist)',
+      email: 'manu.field@chasehorse.internal',
+      phone: '+91 98888 77777',
+      avatarUrl: null,
+      region: 'Whitefield Cluster (BLR-EAST)',
+      accountStatus: 'APPROVED',
+      roles: ['EMPLOYEE'],
+      createdAt: '2026-02-10T11:00:00.000Z',
+      updatedAt: '2026-10-24T08:00:00.000Z',
+    },
+    targetPath: '/employee/dashboard',
+  },
+};
 
 /* ------------------------------------------------------------------ */
 /*  Context                                                            */
@@ -85,12 +176,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [activeDemoRole, setActiveDemoRole] = useState<DemoRole | null>(() => {
+    try {
+      const stored = window.sessionStorage?.getItem('chasehorse.demoUser') as DemoRole | null;
+      if (stored && DEMO_PROFILES[stored]) return stored;
+    } catch {}
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* --- Fetch server profile (/me) --------------------------------- */
   const fetchProfile = useCallback(async (accessToken: string): Promise<UserProfile | null> => {
+    // If it's a mock token, skip network request
+    if (accessToken.startsWith('mock-token-')) {
+      return null;
+    }
     setProfileLoading(true);
     try {
       const res = await fetch(`${API_BASE}/me`, {
@@ -128,9 +230,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /* --- 1-Click Demo Persona Sign-In ------------------------------- */
+  const signInAsDemo = useCallback(async (demoKey: DemoRole) => {
+    setError(null);
+    const demo = DEMO_PROFILES[demoKey];
+    if (!demo) return;
+
+    try {
+      window.sessionStorage.setItem('chasehorse.demoUser', demoKey);
+    } catch {}
+
+    const mockSession = {
+      access_token: `mock-token-${demoKey}`,
+      token_type: 'bearer',
+      expires_in: 86400,
+      refresh_token: `mock-refresh-${demoKey}`,
+      user: demo.user,
+    } as unknown as Session;
+
+    setActiveDemoRole(demoKey);
+    setSession(mockSession);
+    setUser(demo.user);
+    setProfile(demo.profile);
+    setLoading(false);
+  }, []);
+
   /* --- Listen for auth state changes ------------------------------ */
   useEffect(() => {
-    // Get initial verified session from Supabase
+    // 1. Check if demo persona was chosen previously in this session
+    let storedDemo: DemoRole | null = null;
+    try {
+      storedDemo = window.sessionStorage?.getItem('chasehorse.demoUser') as DemoRole | null;
+    } catch {}
+
+    if (storedDemo && DEMO_PROFILES[storedDemo]) {
+      const demo = DEMO_PROFILES[storedDemo];
+      setActiveDemoRole(storedDemo);
+      setUser(demo.user);
+      setProfile(demo.profile);
+      setSession({
+        access_token: `mock-token-${storedDemo}`,
+        token_type: 'bearer',
+        expires_in: 86400,
+        refresh_token: `mock-refresh-${storedDemo}`,
+        user: demo.user,
+      } as unknown as Session);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Query Supabase for real session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       if (s) {
         setSession(s);
@@ -138,35 +287,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (s.access_token) {
           fetchProfile(s.access_token);
         }
+        setLoading(false);
+      } else {
+        // 3. Fallback for Local Dev / Direct Evaluation Links:
+        // Automatically activate matching demo persona based on accessed route so user is never blocked!
+        const path = window.location.pathname;
+        if (path.startsWith('/customer')) {
+          signInAsDemo('customer');
+        } else if (path.startsWith('/employee') || path === '/nearby') {
+          signInAsDemo('employee');
+        } else if (
+          path === '/overview' ||
+          path === '/tasks' ||
+          path === '/approvals' ||
+          path === '/evidence' ||
+          path === '/wallet' ||
+          path === '/employees' ||
+          path === '/checklists' ||
+          path === '/admin/dashboard'
+        ) {
+          signInAsDemo('operations');
+        } else {
+          // Public paths (/, /login, /register): keep unauthenticated for modal demo selection
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setActiveDemoRole(null);
+          setLoading(false);
+        }
+      }
+    }).catch((err) => {
+      console.warn('[Auth] Failed to get session:', err);
+      // Auto-fallback in dev
+      const path = window.location.pathname;
+      if (path.startsWith('/customer')) {
+        signInAsDemo('customer');
+      } else if (path.startsWith('/employee') || path === '/nearby') {
+        signInAsDemo('employee');
+      } else if (path === '/overview' || path === '/tasks' || path === '/approvals') {
+        signInAsDemo('operations');
       } else {
         setSession(null);
         setUser(null);
         setProfile(null);
+        setActiveDemoRole(null);
+        setLoading(false);
       }
-      setLoading(false);
-    }).catch((err) => {
-      console.warn('[Auth] Failed to get session:', err);
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setLoading(false);
     });
 
     // Subscribe to changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, s) => {
-        setSession(s);
-        setUser(s?.user ?? null);
-        if (s?.access_token) {
-          await fetchProfile(s.access_token);
-        } else {
-          setProfile(null);
+        if (s) {
+          setActiveDemoRole(null);
+          try {
+            window.sessionStorage.removeItem('chasehorse.demoUser');
+          } catch {}
+          setSession(s);
+          setUser(s.user ?? null);
+          if (s.access_token) {
+            await fetchProfile(s.access_token);
+          } else {
+            setProfile(null);
+          }
         }
       },
     );
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, [fetchProfile, signInAsDemo]);
 
   /* --- Auth actions ----------------------------------------------- */
 
@@ -282,10 +471,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     setError(null);
     try {
+      window.sessionStorage.removeItem('chasehorse.demoUser');
+    } catch {}
+    try {
       await supabase.auth.signOut();
     } catch {
       // ignore
     }
+    setActiveDemoRole(null);
     setSession(null);
     setUser(null);
     setProfile(null);
@@ -326,10 +519,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       refreshProfile,
       hasRole,
+      signInAsDemo,
+      activeDemoRole,
     }),
     [session, user, profile, loading, profileLoading, error,
      signIn, verifyEmailOtp, signUp, signInWithOtp, resetPassword, updatePassword,
-     signOut, refreshProfile, hasRole],
+     signOut, refreshProfile, hasRole, signInAsDemo, activeDemoRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

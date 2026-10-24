@@ -45,6 +45,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     if (r && (ROLES as string[]).includes(r)) return r as Role;
     if (auth.profile?.roles?.some((role) => role.toUpperCase() === 'CUSTOMER')) return 'customer';
     if (auth.profile?.roles?.some((role) => role.toUpperCase() === 'EMPLOYEE')) return 'employee';
+    if (auth.profile?.roles?.some((role) => role.toUpperCase().includes('OPERATIONS') || role.toUpperCase() === 'ADMIN')) return 'operations_manager';
     return null;
   }, [auth.user, auth.profile]);
 
