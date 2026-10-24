@@ -21,6 +21,8 @@ import { CustomerTrackingPage } from '@/pages/CustomerTrackingPage';
 import { CustomerReportsPage } from '@/pages/CustomerReportsPage';
 import { CustomerProfilePage } from '@/pages/CustomerProfilePage';
 import { CustomerSupportPage } from '@/pages/CustomerSupportPage';
+import { CustomerTasksPage } from '@/pages/CustomerTasksPage';
+import { CustomerTaskDetailsPage } from '@/pages/CustomerTaskDetailsPage';
 
 export default function App() {
   return (
@@ -45,16 +47,20 @@ export default function App() {
                   <Route path="admin/dashboard" element={<OverviewPage />} />
                   <Route path="overview" element={<OverviewPage />} />
                   <Route path="customer/dashboard" element={<CustomerDashboardPage />} />
+                  <Route path="customer/tasks" element={<CustomerTasksPage />} />
+                  <Route path="customer/tasks/:taskId" element={<CustomerTaskDetailsPage />} />
+                  <Route path="customer/tasks/new" element={<CreateTaskPage />} />
                   <Route path="customer/tracking" element={<CustomerTrackingPage />} />
                   <Route path="customer/reports" element={<CustomerReportsPage />} />
                   <Route path="customer/profile" element={<CustomerProfilePage />} />
                   <Route path="customer/support" element={<CustomerSupportPage />} />
-                  <Route path="customer/history" element={<TasksPage />} />
+                  <Route path="customer/history" element={<CustomerTasksPage />} />
                   <Route path="employee/dashboard" element={<OverviewPage />} />
 
                   {/* Core Field Task Execution Engine */}
                   <Route path="nearby" element={<NearbyPage />} />
                   <Route path="tasks" element={<TasksPage />} />
+                  <Route path="tasks/:taskId" element={<CustomerTaskDetailsPage />} />
                   <Route path="tasks/new" element={<CreateTaskPage />} />
                   <Route path="checklists" element={<ChecklistsPage />} />
                   <Route path="evidence" element={<EvidencePage />} />
