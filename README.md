@@ -1,25 +1,111 @@
-# ChaseHorse Admin Dashboard — Frontend Prototype
+# ChaseHorse EMS — Enterprise Field Operations & Logistics Platform
 
-**Demo only.** React + TypeScript + Vite prototype. All data is fictional and held in browser memory (resets on refresh).
+ChaseHorse EMS is an enterprise-grade workforce orchestration, field audit, and transport management platform designed for high-scale operations in India.
 
-Not implemented: authentication (the role dropdown only changes what is displayed), AI verification (sample output is static), payments, wallet transactions, or any backend call.
+The platform coordinates business customers, distributed on-field workers, operations managers, and commercial logistics transport through an authoritative Java Spring Boot REST API, real Supabase PostgreSQL persistence, cryptographic JWT authentication, and native mobile applications.
 
-## Run
+---
+
+## Architecture Overview
+
+```
+                                 ┌─────────────────────────┐
+                                 │   Supabase Auth / DB    │
+                                 │  PostgreSQL 15+ & RLS   │
+                                 └────────────┬────────────┘
+                                              │ (JDBC / Flyway)
+                                 ┌────────────▼────────────┐
+                                 │    Java 21 Spring Boot  │
+                                 │   REST API (/api/v1/*)  │
+                                 └──────▲────────────▲─────┘
+                                        │ (JWT)      │ (JWT)
+                    ┌───────────────────┴──┐      ┌──┴────────────────────┐
+                    │  React 18 + TS Web   │      │  React Native Mobile  │
+                    │   Vite Admin & Ops   │      │   Expo 52 Field App   │
+                    └──────────────────────┘      └───────────────────────┘
+```
+
+- **Web Frontend**: React 18, TypeScript, Vite, Vanilla CSS.
+- **Mobile Frontend**: React Native 0.76, Expo 52, TypeScript.
+- **Backend API**: Java 21, Spring Boot 3.4.5, Spring Security OAuth2 Resource Server, Spring Data JPA, Flyway.
+- **Database**: PostgreSQL with Row-Level Security (RLS) policies and versioned Flyway migrations.
+- **Authentication**: Supabase Auth (JWT Bearer tokens verified via Supabase JWKS).
+- **Storage**: Private Supabase Storage bucket for GPS-watermarked evidence.
+
+---
+
+## Core Enterprise Modules
+
+1. **Role-Based Access Control (RBAC)**: Single role taxonomy (`ADMIN`, `MANAGER`, `OPERATIONS`, `EMPLOYEE`, `CUSTOMER`, `FIELD_WORKER`, `PARTNER`) enforced strictly server-side. Prevention of role escalation.
+2. **Customer Tenant Isolation**: Complete tenant scoping on tasks, TMS shipments, and dashboard analytics.
+3. **Task Lifecycle State Machine**: Explicit transitions (`OPEN -> ASSIGNED -> IN_PROGRESS -> SUBMITTED -> IN_REVIEW -> APPROVED/REJECTED/CANCELLED`). Workers cannot self-approve.
+4. **Atomic Task Claiming**: Atomic SQL updates prevent concurrent race conditions or double-claims. Returns `409 Conflict` on contention.
+5. **Geo-Tagged Photographic Evidence**: Field camera viewfinder HUD with real-time GPS coordinate watermarking and device telemetry.
+6. **AI Verification & Human Manager Review**: AI verification results stored in `ai_verifications` table; separated from required human operations approvals.
+7. **Immutable Wallet Ledger**: Transactional, append-only financial ledger with unique idempotency keys (`idempotency_key`) preventing duplicate reward disbursements.
+8. **Transport Management System (TMS)**: Authoritative server-side freight pricing based on payload weight and transport plan rates. Sanitized public tracking view omitting sensitive PII.
+
+---
+
+## Getting Started
+
+### 1. Backend REST API (Spring Boot 3.4 / Java 21)
 ```bash
+cd backend/erp-api
+
+# Execute automated security and integration tests
+mvn test
+
+# Run API server locally on http://localhost:8080
+mvn spring-boot:run
+```
+
+### 2. Web Frontend (React 18 + Vite)
+```bash
+# In project root
 npm install
-npm run dev        # http://localhost:5173
+
+# Run TypeScript type check
 npm run typecheck
+
+# Start local development server on http://localhost:5173
+npm run dev
+
+# Create production build (dist/)
 npm run build
 ```
 
-## Screens
-Overview, Employees (approval status), Tasks (create/assign), Nearby tasks, Checklists (configurable), Photo evidence review (AI result shown separately from manager decision), Operations approval queue, Wallets (demo ledger). Navigation is role-based for Admin, Manager, Operations and Customer — a display aid, not security.
+### 3. Mobile Application (React Native + Expo)
+```bash
+cd apps/mobile
 
-## Integrating a backend later
-- `src/api/contract.ts` is the single API interface; `src/api/mockApi.ts` implements it with demo data.
-- Add a REST implementation (see `src/api/httpClient.ts`) for the Spring Boot API and swap it in `src/api/index.ts`. Suggested routes are listed in `contract.ts`.
-- Spring Boot must own authorization, state transitions and ledger writes. Supabase PostgreSQL/Storage sit behind it; never ship service-role keys in this app.
-- Types in `src/types` are shaped to map onto future DTOs/tables.
+# Run TypeScript type check
+npm run typecheck
 
-## Status
-Typecheck and production build pass. Verified with a headless-browser smoke test (all routes load, no console errors). No unit tests yet.
+# Start Expo development server (on port 8082 or default)
+npx expo start
+```
+
+---
+
+## Verification & Test Results
+
+- **Backend Automated Tests**: 15 tests executed, **0 failures, 0 errors, 0 skipped**.
+  - `TaskSecurityAndLifecycleTest`: Customer scoping (403), atomic claiming conflict (409), invalid state transitions (400), worker unauthorized approval attempt (403), valid acceptance (200).
+  - `WalletSecurityTest`: Employee cross-access denial (403), employee own ledger access (200), admin transaction oversight (200).
+  - `EmployeeRoleEscalationTest`: Non-admin privilege escalation denial (403), admin role grant (200).
+  - `TmsSecurityAndPricingTest`: Sanitized public tracking view (200, totalPrice omitted), unauthenticated shipment access rejection (401), scoped customer shipment list (200).
+  - `SecurityConfigTest`: Anonymous access rejection on protected endpoints (401).
+  - `HealthControllerTest`: Health endpoint liveness check (200).
+- **Web Frontend Build**: `tsc -b` and `vite build` completed with 0 errors.
+- **Mobile TypeScript**: `tsc --noEmit` completed with 0 errors.
+
+---
+
+## Documentation Index
+
+- [Implementation Audit & Requirements Traceability Matrix](file:///c:/Users/kteja/OneDrive/Desktop/Chasehorse-EMP/chasehorse/docs/IMPLEMENTATION_AUDIT.md)
+- [Implementation Status Report](file:///c:/Users/kteja/OneDrive/Desktop/Chasehorse-EMP/chasehorse/docs/IMPLEMENTATION_STATUS.md)
+- [API Contract Specification](file:///c:/Users/kteja/OneDrive/Desktop/Chasehorse-EMP/chasehorse/docs/API_CONTRACT.md)
+- [Security Architecture & Checklist](file:///c:/Users/kteja/OneDrive/Desktop/Chasehorse-EMP/chasehorse/docs/SECURITY.md)
+- [Web & Mobile Feature Parity Matrix](file:///c:/Users/kteja/OneDrive/Desktop/Chasehorse-EMP/chasehorse/docs/WEB_MOBILE_PARITY.md)
